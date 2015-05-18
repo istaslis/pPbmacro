@@ -121,7 +121,7 @@ void weightPtHatBins(){
 
     Float_t weight;
     //    sprintf(name,"weighted_merged_jetTrackAnalyzers_IPSVInfo_Extras_pythia%d.root",bounds[it]);
-    sprintf(name,"out.root");
+    sprintf(name,"QCDPPb_HiForest.root");
     int it=0;
     fout[it] = new TFile(name,"RECREATE");
     fout[it]->mkdir("akPu4PFJetAnalyzer");
