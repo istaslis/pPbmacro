@@ -32,6 +32,9 @@
 //#include "/grid_mnt/vol__vol_U__u/llr/cms/lisniak/rootlogon.C"
 
 #define PI 3.14159
+//#define NPARTON 7
+//const int partons[7] = {0,1,2,3,4,5,21};
+
 
 void t::Begin(TTree * /*tree*/)
 {
@@ -75,6 +78,22 @@ void t::SlaveBegin(TTree * /*tree*/)
 
    fInd = new TH1F("fInd","b-jet index",5,0,5);
 
+   /*   for (int i=0;i<NPARTON;i++) {
+     int p = partons[i];
+     bkgpartonmap[p] = new TH1F(Form("fparton%d",p), Form("Parton %d on the backside",p), nbins, xmin, xmax);
+   }
+   */
+   bkgpartonB = new TH1F("bkgpartonB", "background B jets", nbins, xmin, xmax);
+   bkgpartonC = new TH1F("bkgpartonC", "background C jets", nbins, xmin, xmax);
+   bkgpartonUSDG = new TH1F("bkgpartonUSDG", "background USDG jets", nbins, xmin, xmax);
+
+   diB_B = new TH1F("diB_B", "diB_B", nbins, xmin, xmax);
+   diB_C = new TH1F("diB_C", "diB_C", nbins, xmin, xmax);
+   diB_else = new TH1F("diB_else", "diB_else", nbins, xmin, xmax);
+   diC_C = new TH1F("diC_C", "diC_C", nbins, xmin, xmax);
+   diC_else = new TH1F("diC_else", "diC_else", nbins, xmin, xmax);
+   dielse = new TH1F("dielse", "dielse", nbins, xmin, xmax);
+
    ftaggedandB->Sumw2(); ftagged->Sumw2(); fB->Sumw2();
    ftaggedandB2->Sumw2(); ftagged2->Sumw2(); fB2->Sumw2();
 
@@ -108,10 +127,13 @@ Bool_t t::Process(Long64_t entry)
   GetEntry(entry);
 
   float csvvalue = 0.9;
+  float jtpt1 = 60;
+  float jtpt2 = 60;
+
 
   float valueToDraw = fabs(jtphi[0]);
 
-  if (rawpt[0]>18 && jtpt[0]>60 && jtpt[1]>30){
+  if (rawpt[0]>18 && jtpt[0]>jtpt1 && jtpt[1]>jtpt2){
     if (discr_csvSimple[0]>csvvalue && fabs(refparton_flavorForB[0])==5)
       ftaggedandB->Fill(valueToDraw);
 
@@ -130,13 +152,37 @@ Bool_t t::Process(Long64_t entry)
   float deltaphi = fabs(jtphi[0] - jtphi[1]);
   valueToDraw = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
 
-  if (rawpt[0]>18 && rawpt[1]>18  && jtpt[0]>60 && jtpt[1]>30){
-    if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue && 
-	       fabs(refparton_flavorForB[0])==5 && fabs(refparton_flavorForB[1])==5)
-      ftaggedandB2->Fill(valueToDraw);
+  if (rawpt[0]>18 && rawpt[1]>18  && jtpt[0]>jtpt1 && jtpt[1]>jtpt2){
 
-    if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
+    if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue && 
+	fabs(refparton_flavorForB[0])==5 && fabs(refparton_flavorForB[1])==5)
+      ftaggedandB2->Fill(valueToDraw);
+    
+    if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue){
       ftagged2->Fill(valueToDraw); 
+      //	if (fabs(refparton_flavorForB[0])==5) {
+      int p = fabs(refparton_flavorForB[1]);
+      if (p==5) bkgpartonB->Fill(valueToDraw); else
+	if (p==4) bkgpartonC->Fill(valueToDraw); else
+	  //if (p!=0)
+	  bkgpartonUSDG->Fill(valueToDraw);
+	//	}
+
+      int p0 = fabs(refparton_flavorForB[0]);
+      int p1 = fabs(refparton_flavorForB[1]);
+
+      if (p0==5 && p1==5) diB_B->Fill(valueToDraw);
+      if ((p0==5 && p1==4) || (p0==4 && p1==5)) diB_C->Fill(valueToDraw);
+      if ((p0==5 && p1!=5 && p1!=4) || (p1==5 && p0!=5 && p0!=4) ) diB_else->Fill(valueToDraw);
+      if (p0==4 && p1==4) diC_C->Fill(valueToDraw);
+      if ((p0==4 && p1!=5 && p1!=4) || (p1==4 && p0!=5 && p0!=4)) diC_else->Fill(valueToDraw);
+      if (p0!=5 && p0!=4 && p1!=5 && p1!=4) dielse->Fill(valueToDraw);
+
+
+    }
+
+    
+    //	bkgpartonmaps[fabs(refparton_flavorForB[1])]->Fill(deltaphi);
 
     if (fabs(refparton_flavorForB[0])==5 && fabs(refparton_flavorForB[1])==5)
       fB2->Fill(valueToDraw);
@@ -167,6 +213,19 @@ void t::SlaveTerminate()
     ftagged2->Write();
     fB2->Write();
     fInd->Write();
+
+    bkgpartonB->Write();
+    bkgpartonC->Write();
+    bkgpartonUSDG->Write();
+    
+    diB_B->Write();
+    diB_C->Write();
+    diB_else->Write();
+    diC_C->Write();
+    diC_else->Write();
+    dielse->Write();
+
+
 
     fB->SetDirectory(0);
     gDirectory = savedir;
@@ -204,11 +263,50 @@ void t::Terminate()
   fB2 = dynamic_cast<TH1F *>(fFile->Get("fB2"));
   fInd = dynamic_cast<TH1F *>(fFile->Get("fInd"));
 
+  bkgpartonB = dynamic_cast<TH1F *>(fFile->Get("bkgpartonB"));
+  bkgpartonC = dynamic_cast<TH1F *>(fFile->Get("bkgpartonC"));
+  bkgpartonUSDG = dynamic_cast<TH1F *>(fFile->Get("bkgpartonUSDG"));
+  bkgpartonB->SetFillColor(kRed); bkgpartonB->SetFillStyle(1001);
+  bkgpartonC->SetFillColor(kGreen); bkgpartonC->SetFillStyle(1001);
+  bkgpartonUSDG->SetFillColor(kBlue); bkgpartonUSDG->SetFillStyle(1001);
+
+
+  diB_B = dynamic_cast<TH1F *>(fFile->Get("diB_B"));
+  diB_C = dynamic_cast<TH1F *>(fFile->Get("diB_C"));
+  diB_else = dynamic_cast<TH1F *>(fFile->Get("diB_else"));
+  diC_C = dynamic_cast<TH1F *>(fFile->Get("diC_C"));
+  diC_else = dynamic_cast<TH1F *>(fFile->Get("diC_else"));
+  dielse = dynamic_cast<TH1F *>(fFile->Get("dielse"));
+  diB_B->SetFillColor(kRed); diB_B->SetFillStyle(1001);
+  diB_C->SetFillColor(kRed); diB_C->SetFillStyle(3001);
+  diB_else->SetFillColor(kRed); diB_else->SetFillStyle(3004);
+  diC_C->SetFillColor(kGreen); diC_C->SetFillStyle(1001);
+  diC_else->SetFillColor(kGreen); diC_else->SetFillStyle(3004);
+  dielse->SetFillColor(kBlue); dielse->SetFillStyle(3004);
+
+
+
+
+
   eff = new TH1F("eff", "Tagging efficiency", nbins, xmin, xmax); eff->SetDirectory(0);
   pur = new TH1F("pur", "Tagging purity", nbins, xmin, xmax); pur->SetDirectory(0);
   eff2 = new TH1F("eff2", "Tagging efficiency - double", nbins, xmin, xmax); eff2->SetDirectory(0);
   pur2 = new TH1F("pur2", "Tagging purity - double", nbins, xmin, xmax); pur2->SetDirectory(0);
 
+  bkgparton = new THStack("bkgparton","stacked background parton histogram");
+  bkgparton->Add(bkgpartonB);
+  bkgparton->Add(bkgpartonC);
+  bkgparton->Add(bkgpartonUSDG);
+
+  dibkg = new THStack("dibkg","stacked di-background");
+  dibkg->Add(diB_B);
+  dibkg->Add(diB_C);
+  dibkg->Add(diB_else);
+  dibkg->Add(diC_C);
+  dibkg->Add(diC_else);
+  dibkg->Add(dielse);
+
+  
 
 
   //TH1F *tagged2vs1 = new TH1F("tagged2vs1", "Double tagged / once tagged", nbins, xmin, xmax); tagged2vs1->SetDirectory(0);
@@ -242,7 +340,13 @@ void t::Terminate()
   leg3->AddEntry(ftaggedandB2,"tagged di bjets","P");
   TLegend *leg4 = new TLegend(0.55,0.67,0.84,0.84); leg4->SetBorderSize(0);
   leg4->AddEntry(fInd,"b-jet index","P");
-
+  TLegend *leg5 = new TLegend(0.16,0.5,0.5,0.84); leg5->SetBorderSize(0);
+  leg5->AddEntry(diB_B,"B+B","F");
+  leg5->AddEntry(diB_C,"B+C","F");
+  leg5->AddEntry(diB_else,"B+else","F");
+  leg5->AddEntry(diC_C,"C+C","F");
+  leg5->AddEntry(diC_else,"C+else","F");
+  leg5->AddEntry(dielse,"else","F");
 
   TCanvas *c1 = new TCanvas("c1", "single",600,600);
   eff->Draw("E1");
@@ -266,9 +370,26 @@ void t::Terminate()
   fInd->Draw("E1");
   leg4->Draw();
 
+  TCanvas *c5 = new TCanvas("c5", "bkgp",600,600);
+  bkgparton->Draw();
 
-  //if (fH1F) fH1F->Draw("AP");
-  //c1->Update();
+  TCanvas *c6 = new TCanvas("c6", "dibkgp",600,600);
+  dibkg->Draw();
+  leg5->Draw();
+
+
+
+
+
+  std::cout<<"Tagged leading jets: \t"<<ftagged->Integral()<<std::endl;
+  std::cout<<"Leading b-jets: \t"<<fB->Integral()<<std::endl;
+  std::cout<<"Tagged di-jets: \t"<<ftagged2->Integral()<<std::endl;
+  std::cout<<"di-b-jets: \t"<<fB2->Integral()<<std::endl;
+  std::cout<<"Tagged di-jets AND b-jets: \t"<<ftaggedandB2->Integral()<<std::endl;
+  std::cout<<"Tagged di-jets, opposite side B: "<<bkgpartonB->Integral()<<std::endl;
+  std::cout<<"Tagged di-jets, opposite side C: "<<bkgpartonC->Integral()<<std::endl;
+  std::cout<<"Tagged di-jets, opposite side USDG and unmatched: "<<bkgpartonUSDG->Integral()<<std::endl;
+  std::cout<<"Total 3 (=di-b-jets) :"<<bkgpartonB->Integral()+ bkgpartonC->Integral() + bkgpartonUSDG->Integral()<<std::endl;
 
 
   TFile *f = new TFile("outfile.root","recreate");

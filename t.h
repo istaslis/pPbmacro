@@ -15,6 +15,8 @@
 #include "TCanvas.h"
 #include <TProofOutputFile.h>
 #include "TSystem.h"
+#include <map>
+#include "THStack.h"
 
 // Header file for the classes stored in the TTree if any.
 
@@ -26,6 +28,16 @@ public :
    TH1F *ftaggedandB2,*ftagged2, *fB2;
    TH1F *fInd;
    TH1F *eff,*pur,*eff2,*pur2;
+
+   //   std::map<int, TH1F*> bkgpartonmap;
+
+   TH1F *bkgpartonB,*bkgpartonC, *bkgpartonUSDG;
+   THStack *bkgparton;
+
+   TH1F *diB_B, *diB_C,*diB_else,*diC_C,*diC_else,*dielse;
+   THStack *dibkg;
+
+
 
    TProofOutputFile *fProofFile;
 // Fixed size dimensions of array or collections stored in the TTree if any.
