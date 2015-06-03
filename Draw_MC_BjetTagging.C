@@ -7,7 +7,7 @@ void Draw_MC_BjetTagging()
     
 
   //parallel version
-  TProof *plite= TProof::Open("");
+  TProof *plite= TProof::Open("");//workers=6") 
   TChain* ch = new TChain("t","t");
   ch->AddFile("QCDPPb_etacut.root");
   ch->SetProof();

@@ -1,7 +1,7 @@
 void DrawJetSpectrum()
 {
-  TFile *f = new TFile("jettrig_withweight.root");
-  TNtuple *nt = (TNtuple *)f->Get("ntweight");
+  TFile *f = new TFile("jettrig_weight.root");
+  TTree *nt = (TTree *)f->Get("nt");
 
   int nbins=50;
   float xmin=20;
