@@ -128,7 +128,7 @@ Bool_t t::Process(Long64_t entry)
 
   float csvvalue = 0.9;
   float jtpt1 = 60;
-  float jtpt2 = 60;
+  float jtpt2 = 30;
 
 
   float valueToDraw = fabs(jtphi[0]);

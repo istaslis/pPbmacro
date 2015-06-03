@@ -225,7 +225,7 @@ void shrinker(){
 	  refparton_flavorForBout[nrefout]=refparton_flavorForB[r];
 	  discr_probout[nrefout]=discr_prob[r];
 	  discr_csvSimpleout[nrefout]=discr_csvSimple[r];
-	  svtxmout[nrefout]=svtxmout[r];
+	  svtxmout[nrefout]=svtxm[r];
 
 	  nrefout++;
 	}
