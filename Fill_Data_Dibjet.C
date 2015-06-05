@@ -1,6 +1,7 @@
 #include "TFile.h"
 #include "TH1F.h"
 #include "TTree.h"
+#include <iostream>
 
 const float PI = 3.1416;
 
@@ -81,23 +82,44 @@ void Fill_Data_Dibjet()
 
    TFile *fout = new TFile("Hist_Data.root","recreate");
    TH1F *tagged2jetdata = new TH1F("tagged2jetdata", "Tagged di-jets", nbins, xmin, xmax);
+   TH1F *Ajdata = new TH1F("Ajdata", "Aj data", nbins, 0, 1);
+   TH1F *Ajnonbdata = new TH1F("Ajnonbdata", "Aj non b-jet data", nbins, 0, 1);
+   TH1F *Ajbkgdata = new TH1F("Ajbkgdata", "Aj bkg data", nbins, 0, 1);
+
    float csvvalue = 0.9;
    float jtpt1 = 60;
    float jtpt2 = 30;
 
-
+   int oneperc = nentries/100;
    Long64_t nbytes = 0;
    for (Long64_t i=0; i<nentries;i++) {
       nbytes += nt->GetEntry(i);
+      if (i % oneperc == 0) cout<<"\r"<<i/oneperc<<"%   "<<flush;
 
       float deltaphi = fabs(jtphi[0] - jtphi[1]);
-      float valueToDraw = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
-      if (rawpt[0]>18 && rawpt[1]>18  && jtpt[0]>jtpt1 && jtpt[1]>jtpt2 &&
+      deltaphi = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
+      if (rawpt[0]>18 && rawpt[1]>18) { //safety cut
+	
+	if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2 &&
 	  discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
-	tagged2jetdata->Fill(valueToDraw, weightJet);
+	tagged2jetdata->Fill(deltaphi, weightJet);
 
+	if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi>2*PI/3. && discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
+	  Ajdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]), weightJet);
+
+	if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi>2*PI/3.)
+	  Ajnonbdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weightJet);
+
+	if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi<PI/3. && discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
+	  Ajbkgdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weightJet);
+
+      }
    }
+   cout<<endl;
 
    tagged2jetdata->Write();
+   Ajdata->Write();
+   Ajnonbdata->Write();
+   Ajbkgdata->Write();
    fout->Close();
 }

@@ -77,7 +77,7 @@ void t::SlaveBegin(TTree * /*tree*/)
    fB2 = new TH1F("fB2", "B jets - double", nbins, xmin, xmax);
 
    fInd = new TH1F("fInd","b-jet index",5,0,5);
-
+   
    /*   for (int i=0;i<NPARTON;i++) {
      int p = partons[i];
      bkgpartonmap[p] = new TH1F(Form("fparton%d",p), Form("Parton %d on the backside",p), nbins, xmin, xmax);
@@ -93,6 +93,8 @@ void t::SlaveBegin(TTree * /*tree*/)
    diC_C = new TH1F("diC_C", "diC_C", nbins, xmin, xmax);
    diC_else = new TH1F("diC_else", "diC_else", nbins, xmin, xmax);
    dielse = new TH1F("dielse", "dielse", nbins, xmin, xmax);
+
+   AjMC = new TH1F("AjMC","AjMC",nbins, 0, 1);
 
    ftaggedandB->Sumw2(); ftagged->Sumw2(); fB->Sumw2();
    ftaggedandB2->Sumw2(); ftagged2->Sumw2(); fB2->Sumw2();
@@ -181,6 +183,10 @@ Bool_t t::Process(Long64_t entry)
 
     }
 
+    float deltaphi = fabs(jtphi[0] - jtphi[1]);
+    deltaphi = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
+    if (refpt[0]>18 && refpt[1]>18 && jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi>2*PI/3.)
+      AjMC->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weight);
     
     //	bkgpartonmaps[fabs(refparton_flavorForB[1])]->Fill(deltaphi);
 
@@ -225,7 +231,7 @@ void t::SlaveTerminate()
     diC_else->Write();
     dielse->Write();
 
-
+    AjMC->Write();
 
     fB->SetDirectory(0);
     gDirectory = savedir;
@@ -256,6 +262,8 @@ void t::Terminate()
   //Hist_Data.root/tagged2jetdata
   TFile *fdata = new TFile("Hist_Data.root");
   TH1F *tagged2jetdata = (TH1F *)fdata->Get("tagged2jetdata");
+  TH1F *Ajdata = (TH1F *)fdata->Get("Ajdata");
+  Ajdata->Scale(1/Ajdata->Integral());
   tagged2jetdata->Sumw2();
 
   fFile = new TFile("NEWSimpleNtuple.root");
@@ -290,7 +298,9 @@ void t::Terminate()
   dielse->SetFillColor(kBlue); dielse->SetFillStyle(3004);
 
 
-
+  AjMC = dynamic_cast<TH1F *>(fFile->Get("AjMC"));
+  AjMC->Scale(1/AjMC->Integral());
+  AjMC->SetFillColor(kRed); AjMC->SetFillStyle(3004); AjMC->SetMarkerColor(kRed);
 
 
   eff = new TH1F("eff", "Tagging efficiency", nbins, xmin, xmax); eff->SetDirectory(0);
@@ -385,10 +395,11 @@ void t::Terminate()
   dibkg->Draw();
   tagged2jetdata->Draw("same");
   leg5->Draw();
-
   c6->SaveAs("di-bjets_Data_MC.pdf");
 
-
+  TCanvas *c7 = new TCanvas("c7", "Aj",600,600);
+  Ajdata->Draw();
+  AjMC->Draw("same");
 
 
   std::cout<<"Tagged leading jets: \t"<<ftagged->Integral()<<std::endl;

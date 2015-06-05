@@ -37,6 +37,7 @@ public :
    TH1F *diB_B, *diB_C,*diB_else,*diC_C,*diC_else,*dielse;
    THStack *dibkg;
 
+   TH1F *AjMC;
 
 
    TProofOutputFile *fProofFile;
