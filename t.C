@@ -252,6 +252,11 @@ void t::Terminate()
   int kredLight2     = pal->GetColor(253,169,179);
 
 
+  //extract data:
+  //Hist_Data.root/tagged2jetdata
+  TFile *fdata = new TFile("Hist_Data.root");
+  TH1F *tagged2jetdata = (TH1F *)fdata->Get("tagged2jetdata");
+  tagged2jetdata->Sumw2();
 
   fFile = new TFile("NEWSimpleNtuple.root");
   
@@ -347,6 +352,7 @@ void t::Terminate()
   leg5->AddEntry(diC_C,"C+C","F");
   leg5->AddEntry(diC_else,"C+else","F");
   leg5->AddEntry(dielse,"else","F");
+  leg5->AddEntry(tagged2jetdata,"Data","P");
 
   TCanvas *c1 = new TCanvas("c1", "single",600,600);
   eff->Draw("E1");
@@ -373,10 +379,14 @@ void t::Terminate()
   TCanvas *c5 = new TCanvas("c5", "bkgp",600,600);
   bkgparton->Draw();
 
+  int taggeddata = tagged2jetdata->Integral();
+  tagged2jetdata->Scale(ftagged2->Integral()/tagged2jetdata->Integral());
   TCanvas *c6 = new TCanvas("c6", "dibkgp",600,600);
   dibkg->Draw();
+  tagged2jetdata->Draw("same");
   leg5->Draw();
 
+  c6->SaveAs("di-bjets_Data_MC.pdf");
 
 
 
@@ -390,7 +400,7 @@ void t::Terminate()
   std::cout<<"Tagged di-jets, opposite side C: "<<bkgpartonC->Integral()<<std::endl;
   std::cout<<"Tagged di-jets, opposite side USDG and unmatched: "<<bkgpartonUSDG->Integral()<<std::endl;
   std::cout<<"Total 3 (=di-b-jets) :"<<bkgpartonB->Integral()+ bkgpartonC->Integral() + bkgpartonUSDG->Integral()<<std::endl;
-
+  std::cout<<"Tagged di-jets in data: "<<taggeddata<<std::endl;
 
   TFile *f = new TFile("outfile.root","recreate");
   eff->Write();
