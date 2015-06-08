@@ -83,7 +83,7 @@ void Fill_Data_Dibjet()
    TFile *fout = new TFile("Hist_Data.root","recreate");
    TH1F *tagged2jetdata = new TH1F("tagged2jetdata", "Tagged di-jets", nbins, xmin, xmax);
    TH1F *Ajdata = new TH1F("Ajdata", "Aj data", nbins, 0, 1);
-   TH1F *Ajnonbdata = new TH1F("Ajnonbdata", "Aj non b-jet data", nbins, 0, 1);
+   TH1F *Ajincdata = new TH1F("Ajincdata", "Aj non b-jet data", nbins, 0, 1);
    TH1F *Ajbkgdata = new TH1F("Ajbkgdata", "Aj bkg data", nbins, 0, 1);
 
    float csvvalue = 0.9;
@@ -108,7 +108,7 @@ void Fill_Data_Dibjet()
 	  Ajdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]), weightJet);
 
 	if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi>2*PI/3.)
-	  Ajnonbdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weightJet);
+	  Ajincdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weightJet);
 
 	if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi<PI/3. && discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
 	  Ajbkgdata->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weightJet);
@@ -119,7 +119,7 @@ void Fill_Data_Dibjet()
 
    tagged2jetdata->Write();
    Ajdata->Write();
-   Ajnonbdata->Write();
+   Ajincdata->Write();
    Ajbkgdata->Write();
    fout->Close();
 }

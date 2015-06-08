@@ -3,9 +3,9 @@ void DrawJetSpectrum()
   TFile *f = new TFile("jettrig_weight.root");
   TTree *nt = (TTree *)f->Get("nt");
 
-  int nbins=50;
+  int nbins=28;
   float xmin=20;
-  float xmax=150;
+  float xmax=160;
  
   TH1F *j40 = new TH1F("j40","j40",nbins, xmin, xmax);
   TH1F *j60 = new TH1F("j60","j60",nbins, xmin, xmax);
@@ -14,18 +14,18 @@ void DrawJetSpectrum()
 
   TH1F *sp = new TH1F("sp","sp",nbins, xmin, xmax);
   
-  nt->Project("j40","pt", "jt40*weightJet");
-  nt->Project("j60","pt", "jt60*weightJet");
-  nt->Project("j80","pt", "jt80*weightJet");
-  nt->Project("j100","pt","jt100*weightJet");
+  nt->Project("j40","jtpt", "(jt40 && pt>40 && pt<60 && rawpt>22)*weightJet");
+  nt->Project("j60","jtpt", "(jt60 && pt>60 && pt<80 && rawpt>22)*weightJet");
+  nt->Project("j80","jtpt", "(jt80 && pt>80 && pt<100 && rawpt>22)*weightJet");
+  nt->Project("j100","jtpt","(jt100 && pt>100 && rawpt>22)*weightJet");
 
-  nt->Project("sp","pt","weightJet");
+  nt->Project("sp","jtpt","weightJet*(rawpt>22)");
 
     THStack *hs = new THStack("s","stacked");
-    j40->SetFillColorAlpha(kRed,0.3); j40->SetFillStyle(1001);//3001);
-    j60->SetFillColorAlpha(kGreen,0.3); j60->SetFillStyle(1001);//3002);
-    j80->SetFillColorAlpha(kBlue,0.3); j80->SetFillStyle(1001);//3003);
-    j100->SetFillColorAlpha(kOrange,0.3);j100->SetFillStyle(1001);//3004);
+    j40->SetFillColorAlpha(kRed,1); j40->SetFillStyle(1001);//3001);
+    j60->SetFillColorAlpha(kGreen,1); j60->SetFillStyle(1001);//3002);
+    j80->SetFillColorAlpha(kBlue,1); j80->SetFillStyle(1001);//3003);
+    j100->SetFillColorAlpha(kOrange,1);j100->SetFillStyle(1001);//3004);
   j40->SetMarkerColor(kRed);
   j60->SetMarkerColor(kGreen);
   j80->SetMarkerColor(kBlue);
@@ -56,16 +56,18 @@ void DrawJetSpectrum()
 
   TCanvas *c = new TCanvas("c","c",600,600);
   c->SetLogy(true);
-  //  hs->Draw();
   //sp->Draw("same");
 
-  sp->Draw();
-  j40->Draw("same");
-  j60->Draw("same");
-  j80->Draw("same");
-  j100->Draw("same");
+  hs->Draw();
+  sp->Draw("same");
+  //  j40->Draw("same");
+  //j60->Draw("same");
+  //j80->Draw("same");
+  //j100->Draw("same");
 
   leg->Draw();
+
+  hs->GetHistogram()->GetXaxis()->SetTitle("jet p_{T} [GeV/c]");
 
   //  hs->Draw("same");
   c->SaveAs("jetspectrum.pdf");

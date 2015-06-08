@@ -94,8 +94,11 @@ void t::SlaveBegin(TTree * /*tree*/)
    diC_else = new TH1F("diC_else", "diC_else", nbins, xmin, xmax);
    dielse = new TH1F("dielse", "dielse", nbins, xmin, xmax);
 
-   AjMC = new TH1F("AjMC","AjMC",nbins, 0, 1);
-
+   AjMCtagged = new TH1F("AjMCtagged","AjMCtagged",nbins, 0, 1);
+   AjMCinc = new TH1F("AjMCinc","AjMCinc",nbins, 0, 1);
+   AjMClight = new TH1F("AjMClight","AjMClight",nbins, 0, 1);
+   AjMC_b = new TH1F("AjMC_b","AjMC_b",nbins, 0, 1);
+   
    ftaggedandB->Sumw2(); ftagged->Sumw2(); fB->Sumw2();
    ftaggedandB2->Sumw2(); ftagged2->Sumw2(); fB2->Sumw2();
 
@@ -128,75 +131,78 @@ Bool_t t::Process(Long64_t entry)
   //    Double_t x = fRandom->Gaus(0.,1.);
   GetEntry(entry);
 
+  //skip the event where rawpt of two highest jets is below 18 GeV/C
+  if (rawpt[0]<18 || rawpt[1]<18) return kTRUE; 
+
   float csvvalue = 0.9;
   float jtpt1 = 60;
   float jtpt2 = 30;
 
+  float deltaphi = fabs(jtphi[0] - jtphi[1]);
+  deltaphi = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
 
-  float valueToDraw = fabs(jtphi[0]);
+  int p0 = fabs(refparton_flavorForB[0]);
+  int p1 = fabs(refparton_flavorForB[1]);
 
-  if (rawpt[0]>18 && jtpt[0]>jtpt1 && jtpt[1]>jtpt2){
-    if (discr_csvSimple[0]>csvvalue && fabs(refparton_flavorForB[0])==5)
-      ftaggedandB->Fill(valueToDraw);
+  float aj = (jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]);
 
-    if (discr_csvSimple[0]>csvvalue)
-      ftagged->Fill(valueToDraw);
 
-    if (fabs(refparton_flavorForB[0])==5)
-      fB->Fill(valueToDraw);
-    
-
-  }
   if (nrefout==5)
     for (int i=0;i<nrefout;i++)
-      if (rawpt[i]>18 && fabs(refparton_flavorForB[i])==5) fInd->Fill(i);
+      if (rawpt[i]>18 && fabs(refparton_flavorForB[i])==5) fInd->Fill(i,weight);
 
-  float deltaphi = fabs(jtphi[0] - jtphi[1]);
-  valueToDraw = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
 
-  if (rawpt[0]>18 && rawpt[1]>18  && jtpt[0]>jtpt1 && jtpt[1]>jtpt2){
+
+  if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2){
+    float phi1 = fabs(jtphi[0]);
+
+    if (discr_csvSimple[0]>csvvalue && fabs(refparton_flavorForB[0])==5)
+      ftaggedandB->Fill(phi1,weight);
+    if (discr_csvSimple[0]>csvvalue)
+      ftagged->Fill(phi1,weight);
+    if (fabs(refparton_flavorForB[0])==5)
+      fB->Fill(phi1,weight);
+    
 
     if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue && 
 	fabs(refparton_flavorForB[0])==5 && fabs(refparton_flavorForB[1])==5)
-      ftaggedandB2->Fill(valueToDraw);
+      ftaggedandB2->Fill(deltaphi,weight);
     
     if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue){
-      ftagged2->Fill(valueToDraw); 
-      //	if (fabs(refparton_flavorForB[0])==5) {
-      int p = fabs(refparton_flavorForB[1]);
-      if (p==5) bkgpartonB->Fill(valueToDraw); else
-	if (p==4) bkgpartonC->Fill(valueToDraw); else
-	  //if (p!=0)
-	  bkgpartonUSDG->Fill(valueToDraw);
-	//	}
+      ftagged2->Fill(deltaphi,weight); 
+      
+      if (p1==5) bkgpartonB->Fill(deltaphi, weight); else
+	if (p1==4) bkgpartonC->Fill(deltaphi, weight); else
+	  bkgpartonUSDG->Fill(deltaphi,weight);
 
-      int p0 = fabs(refparton_flavorForB[0]);
-      int p1 = fabs(refparton_flavorForB[1]);
-
-      if (p0==5 && p1==5) diB_B->Fill(valueToDraw);
-      if ((p0==5 && p1==4) || (p0==4 && p1==5)) diB_C->Fill(valueToDraw);
-      if ((p0==5 && p1!=5 && p1!=4) || (p1==5 && p0!=5 && p0!=4) ) diB_else->Fill(valueToDraw);
-      if (p0==4 && p1==4) diC_C->Fill(valueToDraw);
-      if ((p0==4 && p1!=5 && p1!=4) || (p1==4 && p0!=5 && p0!=4)) diC_else->Fill(valueToDraw);
-      if (p0!=5 && p0!=4 && p1!=5 && p1!=4) dielse->Fill(valueToDraw);
+      if (p0==5 && p1==5) diB_B->Fill(deltaphi,weight);
+      if ((p0==5 && p1==4) || (p0==4 && p1==5)) diB_C->Fill(deltaphi,weight);
+      if ((p0==5 && p1!=5 && p1!=4) || (p1==5 && p0!=5 && p0!=4) ) diB_else->Fill(deltaphi,weight);
+      if (p0==4 && p1==4) diC_C->Fill(deltaphi,weight);
+      if ((p0==4 && p1!=5 && p1!=4) || (p1==4 && p0!=5 && p0!=4)) diC_else->Fill(deltaphi,weight);
+      if (p0!=5 && p0!=4 && p1!=5 && p1!=4) dielse->Fill(deltaphi,weight);
 
 
     }
 
-    float deltaphi = fabs(jtphi[0] - jtphi[1]);
-    deltaphi = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
-    if (refpt[0]>18 && refpt[1]>18 && jtpt[0]>jtpt1 && jtpt[1]>jtpt2 && deltaphi>2*PI/3.)
-      AjMC->Fill((jtpt[0]-jtpt[1])/(jtpt[0]+jtpt[1]),weight);
-    
-    //	bkgpartonmaps[fabs(refparton_flavorForB[1])]->Fill(deltaphi);
-
     if (fabs(refparton_flavorForB[0])==5 && fabs(refparton_flavorForB[1])==5)
-      fB2->Fill(valueToDraw);
+      fB2->Fill(deltaphi,weight);
     
+      
+    if (deltaphi>2*PI/3.) {
+
+      AjMCinc->Fill(aj,weight);
+
+      if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
+	AjMCtagged->Fill(aj,weight);
+    
+      if (p0==5) AjMC_b->Fill(aj,weight);
+
+      if (p0!=5) AjMClight->Fill(aj,weight);
+
+    }
+  
   }
-
-
-
 
    return kTRUE;
 }
@@ -231,7 +237,10 @@ void t::SlaveTerminate()
     diC_else->Write();
     dielse->Write();
 
-    AjMC->Write();
+    AjMCtagged->Write();
+    AjMCinc->Write();
+    AjMClight->Write();
+    AjMC_b->Write();
 
     fB->SetDirectory(0);
     gDirectory = savedir;
@@ -242,6 +251,15 @@ void t::SlaveTerminate()
     fOutput->Add(fProofFile);
 
   }
+}
+
+void PrepareAjhist(TH1F *aj, int color)
+{
+  aj->Scale(1/aj->Integral());
+  aj->SetFillColor(color); 
+  aj->SetFillStyle(3004); 
+  aj->SetMarkerColor(color);
+  aj->SetOption("HIST");
 }
 
 void t::Terminate()
@@ -262,9 +280,12 @@ void t::Terminate()
   //Hist_Data.root/tagged2jetdata
   TFile *fdata = new TFile("Hist_Data.root");
   TH1F *tagged2jetdata = (TH1F *)fdata->Get("tagged2jetdata");
+  tagged2jetdata->Sumw2();
+
   TH1F *Ajdata = (TH1F *)fdata->Get("Ajdata");
   Ajdata->Scale(1/Ajdata->Integral());
-  tagged2jetdata->Sumw2();
+  TH1F *Ajdatainc = (TH1F *)fdata->Get("Ajincdata");
+  Ajdatainc->Scale(1/Ajdatainc->Integral());
 
   fFile = new TFile("NEWSimpleNtuple.root");
   
@@ -298,10 +319,15 @@ void t::Terminate()
   dielse->SetFillColor(kBlue); dielse->SetFillStyle(3004);
 
 
-  AjMC = dynamic_cast<TH1F *>(fFile->Get("AjMC"));
-  AjMC->Scale(1/AjMC->Integral());
-  AjMC->SetFillColor(kRed); AjMC->SetFillStyle(3004); AjMC->SetMarkerColor(kRed);
+  AjMCtagged = dynamic_cast<TH1F *>(fFile->Get("AjMCtagged"));
+  AjMCinc = dynamic_cast<TH1F *>(fFile->Get("AjMCinc"));
+  AjMClight = dynamic_cast<TH1F *>(fFile->Get("AjMClight"));
+  AjMC_b = dynamic_cast<TH1F *>(fFile->Get("AjMC_b"));
 
+  PrepareAjhist(AjMCtagged, kRed);
+  PrepareAjhist(AjMCinc, kGreen);
+  PrepareAjhist(AjMClight, kBlue);
+  PrepareAjhist(AjMC_b,kOrange);
 
   eff = new TH1F("eff", "Tagging efficiency", nbins, xmin, xmax); eff->SetDirectory(0);
   pur = new TH1F("pur", "Tagging purity", nbins, xmin, xmax); pur->SetDirectory(0);
@@ -344,11 +370,11 @@ void t::Terminate()
 
 
   TLegend *leg = new TLegend(0.16,0.16,0.5,0.33); leg->SetBorderSize(0);
-  leg->AddEntry(eff,"efficiency 1 jet","P");
-  leg->AddEntry(pur,"putiry 1 jet","P");
+  leg->AddEntry(eff,"efficiency","P");
+  leg->AddEntry(pur,"purity","P");
   TLegend *leg2 = new TLegend(0.16,0.16,0.5,0.33); leg2->SetBorderSize(0); //0.67,0.67,0.84,0.84);
-  leg2->AddEntry(eff2,"efficiency 2 jets","P");
-  leg2->AddEntry(pur2,"putiry 2 jets","P");
+  leg2->AddEntry(eff2,"efficiency","P");
+  leg2->AddEntry(pur2,"purity","P");
   TLegend *leg3 = new TLegend(0.55,0.67,0.84,0.84); leg3->SetBorderSize(0);
   leg3->AddEntry(ftagged2,"tagged 2 jets","P");
   leg3->AddEntry(fB2,"di b-jets","P");
@@ -358,20 +384,23 @@ void t::Terminate()
   TLegend *leg5 = new TLegend(0.16,0.5,0.5,0.84); leg5->SetBorderSize(0);
   leg5->AddEntry(diB_B,"B+B","F");
   leg5->AddEntry(diB_C,"B+C","F");
-  leg5->AddEntry(diB_else,"B+else","F");
+  leg5->AddEntry(diB_else,"B+l","F");
   leg5->AddEntry(diC_C,"C+C","F");
-  leg5->AddEntry(diC_else,"C+else","F");
-  leg5->AddEntry(dielse,"else","F");
+  leg5->AddEntry(diC_else,"C+l","F");
+  leg5->AddEntry(dielse,"l+l","F");
   leg5->AddEntry(tagged2jetdata,"Data","P");
 
   TCanvas *c1 = new TCanvas("c1", "single",600,600);
   eff->Draw("E1");
   pur->Draw("E1,same");
   leg->Draw();
+  c1->SaveAs("btag_eff_pur.pdf");
+
   TCanvas *c2 = new TCanvas("c2", "double ",600,600);
   eff2->Draw("E1");
   pur2->Draw("E1,same");
   leg2->Draw();
+  c2->SaveAs("btag_double_eff_pur.pdf");
 
   fB2->SetMarkerColor(kred2); fB2->SetLineColor(kredLight2);
   ftagged2->SetMarkerColor(kblue2); ftagged2->SetLineColor(kblueLight2);
@@ -392,14 +421,64 @@ void t::Terminate()
   int taggeddata = tagged2jetdata->Integral();
   tagged2jetdata->Scale(ftagged2->Integral()/tagged2jetdata->Integral());
   TCanvas *c6 = new TCanvas("c6", "dibkgp",600,600);
-  dibkg->Draw();
+  dibkg->Draw("hist");
+  dibkg->GetHistogram()->GetXaxis()->SetTitle("#Delta #phi");
   tagged2jetdata->Draw("same");
   leg5->Draw();
+  
   c6->SaveAs("di-bjets_Data_MC.pdf");
 
+  TLegend *lAj = new TLegend(0.55,0.67,0.84,0.84); lAj->SetBorderSize(0);
+  lAj->AddEntry(AjMClight,"MC light","F");
+  lAj->AddEntry(AjMCtagged,"MC tagged","P");
+  lAj->AddEntry(Ajdata,"data tagged","P");
+  THStack *Aj = new THStack("Aj","Aj");
+  //Aj->Add(AjMC,"hist");
+  Aj->Add(AjMCtagged);
+  //Aj->Add(AjMCinc);
+  Aj->Add(AjMClight,"hist");
+  //Aj->Add(AjMC_b);
+  Aj->Add(Ajdata);
   TCanvas *c7 = new TCanvas("c7", "Aj",600,600);
-  Ajdata->Draw();
-  AjMC->Draw("same");
+  Aj->Draw("nostack");
+  lAj->Draw();
+  c7->SaveAs("Aj_MCl_MCt_dt.pdf");
+
+
+  TLegend *lAjinc = new TLegend(0.55,0.67,0.84,0.84); lAjinc->SetBorderSize(0);
+  lAjinc->AddEntry(Ajdatainc,"data inclusive","P");
+  lAjinc->AddEntry(AjMCinc,"MC inclusive","F");
+  THStack *Ajinc = new THStack("Ajinc","Ajinc");
+  Ajinc->Add(Ajdatainc);
+  Ajinc->Add(AjMCinc,"hist");
+  TCanvas *c8 = new TCanvas("c8", "Ajinc",600,600);
+  Ajinc->Draw("nostack");
+  lAjinc->Draw();
+  c8->SaveAs("Aj_di_MCi.pdf");
+
+  TLegend *lAj3 = new TLegend(0.55,0.67,0.84,0.84); lAj3->SetBorderSize(0);
+  lAj3->AddEntry(AjMCinc,"MC inclusive","F");
+  lAj3->AddEntry(AjMClight,"MC light","P");
+  lAj3->AddEntry(AjMCtagged,"MC tagged","P");
+  THStack *Aj3 = new THStack("Aj3","Aj3");
+  Aj3->Add(AjMCinc,"hist");
+  Aj3->Add(AjMClight);
+  Aj3->Add(AjMCtagged);
+  TCanvas *c9 = new TCanvas("c9", "Aj3",600,600);
+  Aj3->Draw("nostack");
+  lAj3->Draw();
+  c9->SaveAs("Aj_MCi_MCl_MCt.pdf");
+
+  TLegend *lAj4 = new TLegend(0.55,0.67,0.84,0.84); lAj4->SetBorderSize(0);
+  lAj4->AddEntry(Ajdatainc,"data inclusive","F");
+  lAj4->AddEntry(Ajdata,"data tagged","P");
+  THStack *Aj4 = new THStack("Aj4","Aj4");
+  Aj4->Add(Ajdatainc,"hist");
+  Aj4->Add(Ajdata);
+  TCanvas *c10 = new TCanvas("c10", "Aj4",600,600);
+  Aj4->Draw("nostack");
+  lAj4->Draw();
+  c10->SaveAs("Aj_di_dt.pdf");
 
 
   std::cout<<"Tagged leading jets: \t"<<ftagged->Integral()<<std::endl;
