@@ -9,6 +9,7 @@ Data:
 	- Subset_Data_JetTrigger.C
 	- Append_Data_TriggerWeight.C
 	- Subset_Data_EtaCut.C
+	- Draw_MCData_checks.C
 	- Draw_Data_JetSpectrum.C (don't use)
 	- DrawJetSpectrum.C
 	- DrawDiBjet.C
