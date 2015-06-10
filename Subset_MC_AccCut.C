@@ -5,7 +5,7 @@
 #include "TNtuple.h"
 #include <algorithm>
 
-void shrinker(){
+void Subset_MC_AccCut(){
     
   gROOT->Reset();
 
@@ -215,7 +215,7 @@ void shrinker(){
 
            nrefout = 0;
       for (int r = 0;r<nref;r++)
-       	if (fabs(jteta[r])<2) 
+       	if (fabs(jteta[r])<2 && rawpt[r]>18.) 
 	  {
 	  jtptout[nrefout]=jtpt[r];
 	  jtetaout[nrefout]=jteta[r];

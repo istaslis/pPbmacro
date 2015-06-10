@@ -5,7 +5,7 @@
 #include "TNtuple.h"
 #include <algorithm>
 
-void Subset_Data_EtaCut()
+void Subset_Data_AccCut()
 {
    TFile *f = new TFile("jettrig_weight.root");
    TTree *nt = (TTree *)f->Get("nt");
@@ -133,7 +133,7 @@ void Subset_Data_EtaCut()
       if (i % oneperc == 0) cout<<"\r"<<i/oneperc<<"%   "<<flush;
       nrefout = 0;
       for (int r = 0;r<nref;r++)
-         if (fabs(jteta[r])<2) 
+         if (fabs(jteta[r])<2 && rawpt[r]>22.) 
          {
           jtptout[nrefout]=jtpt[r];
           jtetaout[nrefout]=jteta[r];
