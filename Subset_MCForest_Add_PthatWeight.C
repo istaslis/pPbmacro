@@ -3,7 +3,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-void weightPtHatBins(){
+void Subset_MCForest_Add_PthatWeight(){
     
   gROOT->Reset();
 
@@ -24,10 +24,11 @@ void weightPtHatBins(){
   };
   */
   char name[100];
+
+  TString sample = "QCDPPb";//"bJetPPb"; //QCDPPb
   
   for (Int_t it=0; it<Nbins; it++) {
-
-    sprintf(name,"/data_CMS/cms/mnguyen/pPbAna/QCDPPb/pthat%d/merged_HiForest.root",bounds[it]);
+    sprintf(name,"/data_CMS/cms/mnguyen/pPbAna/%s/pthat%d/merged_HiForest.root",sample.Data(), bounds[it]);
     fin[it] = new TFile(name);
     fin[it]->cd("/akPu4PFJetAnalyzer");
 
@@ -36,6 +37,9 @@ void weightPtHatBins(){
    
   }
   //
+
+  sprintf(name,"%s_HiForest.root",sample.Data());
+
 
   float weights[Nbins] = {1.};
   float sumofweights = 1;
@@ -121,7 +125,6 @@ void weightPtHatBins(){
 
     Float_t weight;
     //    sprintf(name,"weighted_merged_jetTrackAnalyzers_IPSVInfo_Extras_pythia%d.root",bounds[it]);
-    sprintf(name,"QCDPPb_HiForest.root");
     int it=0;
     fout[it] = new TFile(name,"RECREATE");
     fout[it]->mkdir("akPu4PFJetAnalyzer");

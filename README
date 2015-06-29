@@ -1,6 +1,6 @@
 MC:
 	- Subset_MCForest_Add_PthatWeight.C
-	- Subset_MC_EtaCut.C
+	- Subset_MC_AccCut.C
 	- DrawMC_pthatweight.C
 	- Draw_MC_Btageffpur_simple.C (don't use this one)
 	- Draw_MC_BjetTagging.C
@@ -8,7 +8,7 @@ MC:
 Data:
 	- Subset_Data_JetTrigger.C
 	- Append_Data_TriggerWeight.C
-	- Subset_Data_EtaCut.C
+	- Subset_Data_AccCut.C
 	- Draw_MCData_checks.C
 	- Draw_Data_JetSpectrum.C (don't use)
 	- DrawJetSpectrum.C

@@ -65,8 +65,14 @@ void t::SlaveBegin(TTree * /*tree*/)
   fFile = fProofFile->OpenFile("RECREATE");
 
 
-  savedir->cd();
+   savedir->cd();
 
+   ftag_b = new TH1F("ftag_b", "Tagged B jet tagger distribution", nbins, 0, 1);
+   ftag_c = new TH1F("ftag_c", "Tagged C jet tagger distribution", nbins, 0, 1);
+   ftag_usdg = new TH1F("ftag_usdg", "Tagged USDG jet tagger distribution", nbins, 0, 1);
+   ftagaway_b = new TH1F("ftagaway_b", "Tagged B jet away tagger distribution", nbins, 0, 1);
+   ftagaway_c = new TH1F("ftagaway_c", "Tagged B jet away tagger distribution", nbins, 0, 1);
+   ftagaway_usdg = new TH1F("ftagaway_usdg", "Tagged B jet away tagger distribution", nbins, 0, 1);
 
 
    ftaggedandB = new TH1F("ftaggedandB", "Tagged and B jets", nbins, xmin, xmax);
@@ -138,6 +144,8 @@ Bool_t t::Process(Long64_t entry)
   float jtpt1 = 60;
   float jtpt2 = 30;
 
+  float phi1 = fabs(jtphi[0]);
+
   float deltaphi = fabs(jtphi[0] - jtphi[1]);
   deltaphi = deltaphi > PI ? 2*PI-deltaphi : deltaphi;
 
@@ -154,7 +162,21 @@ Bool_t t::Process(Long64_t entry)
 
 
   if (jtpt[0]>jtpt1 && jtpt[1]>jtpt2){
-    float phi1 = fabs(jtphi[0]);
+
+    if (p0==5) ftag_b->Fill(discr_csvSimple[0],weight); else
+      if (p0==4) ftag_c->Fill(discr_csvSimple[0],weight); else
+                    ftag_usdg->Fill(discr_csvSimple[0],weight);
+
+    if (discr_csvSimple[0]>csvvalue)
+    {
+    if (p1==5) ftagaway_b->Fill(discr_csvSimple[1],weight); else
+      if (p1==4) ftagaway_c->Fill(discr_csvSimple[1],weight); else
+                    ftagaway_usdg->Fill(discr_csvSimple[1],weight);
+
+
+    }
+
+
 
     if (discr_csvSimple[0]>csvvalue && fabs(refparton_flavorForB[0])==5)
       ftaggedandB->Fill(phi1,weight);
@@ -184,8 +206,7 @@ Bool_t t::Process(Long64_t entry)
 
 
     }
-
-    if (fabs(refparton_flavorForB[0])==5 && fabs(refparton_flavorForB[1])==5)
+    if (p0==5 && p1==5)
       fB2->Fill(deltaphi,weight);
     
       
@@ -196,9 +217,9 @@ Bool_t t::Process(Long64_t entry)
       if (discr_csvSimple[0]>csvvalue && discr_csvSimple[1]>csvvalue)
 	AjMCtagged->Fill(aj,weight);
     
-      if (p0==5) AjMC_b->Fill(aj,weight);
+      if (p0==5 && p1==5) AjMC_b->Fill(aj,weight);
 
-      if (p0!=5) AjMClight->Fill(aj,weight);
+      if (p0!=5 && p1!=5) AjMClight->Fill(aj,weight);
 
     }
   
@@ -218,6 +239,15 @@ void t::SlaveTerminate()
   if(fFile) {
     fFile->cd();
     bool ok = false;
+
+    ftag_b->Write();
+    ftag_c->Write();
+    ftag_usdg->Write();
+    ftagaway_b->Write();
+    ftagaway_c->Write();
+    ftagaway_usdg->Write();
+
+
     ftaggedandB->Write();
     ftagged->Write();
     fB->Write();
@@ -289,6 +319,23 @@ void t::Terminate()
 
   fFile = new TFile("NEWSimpleNtuple.root");
   
+  ftag_b = dynamic_cast<TH1F *>(fFile->Get("ftag_b"));
+  ftag_c = dynamic_cast<TH1F *>(fFile->Get("ftag_c"));
+  ftag_usdg = dynamic_cast<TH1F *>(fFile->Get("ftag_usdg"));
+  ftag_b->SetFillColor(kRed); ftag_b->SetFillStyle(1001);
+  ftag_c->SetFillColor(kGreen); ftag_c->SetFillStyle(1001);
+  ftag_usdg->SetFillColor(kBlue); ftag_usdg->SetFillStyle(1001);
+
+  ftagaway_b = dynamic_cast<TH1F *>(fFile->Get("ftagaway_b"));
+  ftagaway_c = dynamic_cast<TH1F *>(fFile->Get("ftagaway_c"));
+  ftagaway_usdg = dynamic_cast<TH1F *>(fFile->Get("ftagaway_usdg"));
+  ftagaway_b->SetFillColor(kRed); ftagaway_b->SetFillStyle(1001);
+  ftagaway_c->SetFillColor(kGreen); ftagaway_c->SetFillStyle(1001);
+  ftagaway_usdg->SetFillColor(kBlue); ftagaway_usdg->SetFillStyle(1001);
+
+
+
+
   ftaggedandB = dynamic_cast<TH1F *>(fFile->Get("ftaggedandB"));
   ftagged = dynamic_cast<TH1F *>(fFile->Get("ftagged"));
   fB = dynamic_cast<TH1F *>(fFile->Get("fB"));
@@ -328,6 +375,14 @@ void t::Terminate()
   PrepareAjhist(AjMCinc, kGreen);
   PrepareAjhist(AjMClight, kBlue);
   PrepareAjhist(AjMC_b,kOrange);
+
+  ftag_stacked = new THStack("ftagStack","stacked tagger distribution");
+  ftag_stacked->Add(ftag_b);  ftag_stacked->Add(ftag_c);  ftag_stacked->Add(ftag_usdg);
+  ftag_stacked->SetMinimum(10);
+  ftagaway_stacked = new THStack("ftagStack","stacked away tagger distribution");
+  ftagaway_stacked->Add(ftagaway_b);  ftagaway_stacked->Add(ftagaway_c);  ftagaway_stacked->Add(ftagaway_usdg);
+  ftagaway_stacked->SetMinimum(10);
+
 
   eff = new TH1F("eff", "Tagging efficiency", nbins, xmin, xmax); eff->SetDirectory(0);
   pur = new TH1F("pur", "Tagging purity", nbins, xmin, xmax); pur->SetDirectory(0);
@@ -431,14 +486,15 @@ void t::Terminate()
   TLegend *lAj = new TLegend(0.55,0.67,0.84,0.84); lAj->SetBorderSize(0);
   lAj->AddEntry(AjMClight,"MC light","F");
   lAj->AddEntry(AjMCtagged,"MC tagged","P");
-  lAj->AddEntry(Ajdata,"data tagged","P");
+  lAj->AddEntry(AjMC_b,"MC b","P");
+  //lAj->AddEntry(Ajdata,"data tagged","P");
   THStack *Aj = new THStack("Aj","Aj");
   //Aj->Add(AjMC,"hist");
   Aj->Add(AjMCtagged);
   //Aj->Add(AjMCinc);
   Aj->Add(AjMClight,"hist");
-  //Aj->Add(AjMC_b);
-  Aj->Add(Ajdata);
+  Aj->Add(AjMC_b,"E1");
+  //Aj->Add(Ajdata);
   TCanvas *c7 = new TCanvas("c7", "Aj",600,600);
   Aj->Draw("nostack");
   lAj->Draw();
@@ -479,6 +535,25 @@ void t::Terminate()
   Aj4->Draw("nostack");
   lAj4->Draw();
   c10->SaveAs("Aj_di_dt.pdf");
+
+
+  TLegend *ltag = new TLegend(0.55,0.67,0.84,0.84); ltag->SetBorderSize(0);
+  ltag->AddEntry(ftag_b,"B","F");
+  ltag->AddEntry(ftag_c,"B","F");
+  ltag->AddEntry(ftag_usdg,"B","F");
+  TCanvas *c11 = new TCanvas("c11","ftag",600,600);
+  ftag_stacked->Draw("hist");
+  c11->SetLogy(true);
+  c11->SaveAs("ftag.pdf");
+
+  TLegend *ltagaway = new TLegend(0.55,0.67,0.84,0.84); ltagaway->SetBorderSize(0);
+  ltagaway->AddEntry(ftagaway_b,"B","F");
+  ltagaway->AddEntry(ftagaway_c,"B","F");
+  ltagaway->AddEntry(ftagaway_usdg,"B","F");
+  TCanvas *c12 = new TCanvas("c12","ftagaway",600,600);
+  ftagaway_stacked->Draw("hist");
+  c12->SetLogy(true);
+  c12->SaveAs("ftagaway.pdf");
 
 
   std::cout<<"Tagged leading jets: \t"<<ftagged->Integral()<<std::endl;

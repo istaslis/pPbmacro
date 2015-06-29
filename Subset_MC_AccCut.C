@@ -14,7 +14,9 @@ void Subset_MC_AccCut(){
   TTree *tr_in, *tr_out;
   //  TNtuple *nt_out;
 
-  char *name = "QCDPPb_HiForest.root";
+  char *sample = "QCDPPb";//"QCDPPb";//bJetPPb
+  char *name = Form("%s_HiForest.root",sample);
+  char *outname = Form("%s_AccCut.root",sample);
   fin = new TFile(name);
   fin->cd("/akPu4PFJetAnalyzer");
 
@@ -181,7 +183,7 @@ void Subset_MC_AccCut(){
     Float_t         svtxmout[1000];
 
 
-    fout = new TFile("QCDPPb_etacut.root","recreate");
+    fout = new TFile(outname,"recreate");
     //    nt_out = new TNtuple("jtasymmetry","jtasymmetry","jtpt1:jtpt2:weight:pthat");
 
     tr_out = new TTree("t","tree after selection");
@@ -205,6 +207,15 @@ void Subset_MC_AccCut(){
     tr_out->Branch("svtxm",svtxmout,"svtxm[nrefout]/F");
     tr_out->Branch("bin",&bin,"bin/I");
     
+    tr_out->Branch("mue",mue,"mue[nrefout]/F");
+    tr_out->Branch("mupt",mupt,"mupt[nrefout]/F");
+    tr_out->Branch("mueta",mueta,"mueta[nrefout]/F");
+    tr_out->Branch("muphi",muphi,"muphi[nrefout]/F");
+    tr_out->Branch("mudr",mudr,"mudr[nrefout]/F");
+    tr_out->Branch("muptrel",muptrel,"muptrel[nrefout]/F");
+    tr_out->Branch("muchg",muchg,"muchg[nrefout]/F");
+
+
 
 
     Long64_t nentries = tr_in->GetEntries();
@@ -226,6 +237,15 @@ void Subset_MC_AccCut(){
 	  discr_probout[nrefout]=discr_prob[r];
 	  discr_csvSimpleout[nrefout]=discr_csvSimple[r];
 	  svtxmout[nrefout]=svtxm[r];
+
+      mue[nrefout]=mue[r];
+      mupt[nrefout]=mupt[r];
+      mueta[nrefout]=mueta[r];
+      muphi[nrefout]=muphi[r];
+      mudr[nrefout]=mudr[r];
+      muptrel[nrefout]=muptrel[r];
+      muchg[nrefout]=muchg[r];
+
 
 	  nrefout++;
 	}

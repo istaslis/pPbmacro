@@ -24,6 +24,13 @@ class t : public TSelector {
 public :
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
    TFile            *fFile;
+
+   THStack *ftag_stacked;
+   TH1F *ftag_b, *ftag_c, *ftag_usdg;
+
+   THStack *ftagaway_stacked;
+   TH1F *ftagaway_b, *ftagaway_c, *ftagaway_usdg;   
+
    TH1F *ftaggedandB,*ftagged, *fB;
    TH1F *ftaggedandB2,*ftagged2, *fB2;
    TH1F *fInd;
