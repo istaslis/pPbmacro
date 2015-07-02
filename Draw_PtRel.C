@@ -7,7 +7,7 @@ void FitB(TH1F *mc_b, TH1F *mc_cl, TH1F *data)
 void Draw_PtRel()
 {
   TFile *f = new TFile("QCDPPb_AccCut.root");
-  TTree *t = (TTree *)f->Get("t");
+  TTree *t = (TTree *)f->Get("jet");
 
   int bins = 50;
   float xmin = 0;
