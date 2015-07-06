@@ -28,8 +28,8 @@ void Subset_MC_AccCut(){
   for (auto b:jetbranches) tjet->SetBranchStatus(b,0);
 
   TFile *fout = new TFile(outname,"recreate");
-  TTree *tjetout = tjet->CloneTree(0,"fast");
-
+  TTree *tjetout = tjet->CloneTree(0);//,"fast");
+  tjetout->Print();
   for (auto b:jetbranches) tjet->SetBranchStatus(b,1);
 
     Int_t           nref;

@@ -6,7 +6,7 @@ void FitB(TH1F *mc_b, TH1F *mc_cl, TH1F *data)
 
 void Draw_PtRel()
 {
-  TFile *f = new TFile("QCDPPb_AccCut.root");
+  TFile *f = new TFile("QCDPPb_genmuonmerged.root");
   TTree *t = (TTree *)f->Get("jet");
 
   int bins = 50;
@@ -18,16 +18,19 @@ void Draw_PtRel()
   TH1F *h_b   = new TH1F("h_b","h_b;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
   TH1F *h_all = new TH1F("h_all","h_all;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
 
-  float discr = 0.2;
+//mu - discr 0.2
 
-  char * physicscut = "jtpt>60 && mupt>5";// && mupt>5
+  float discr = 0.1;
+
+  TString muset = "jetmuon";//"mu"
+  char * physicscut = Form("jtpt>60 && %spt>5",muset.Data());// && mupt>5
 
   cout<<"MC jet content..."<<endl;
   
-  t->Project("h_l", "muptrel",Form("weight*(muptrel<5 && muptrel>0 && %s && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && discr_csvSimple>%f)",physicscut,discr));
-  t->Project("h_c", "muptrel",Form("weight*(muptrel<5 && muptrel>0 && %s && abs(refparton_flavorForB)==4 && discr_csvSimple>%f)",physicscut,discr));
-  t->Project("h_b",  "muptrel", Form("weight*(muptrel<5 && muptrel>0 && %s && abs(refparton_flavorForB)==5 && discr_csvSimple>%f)",physicscut,discr));
-  t->Project("h_all","muptrel", Form("weight*(muptrel<5 && muptrel>0 && %s && discr_csvSimple>%f)",physicscut,discr));
+  t->Project("h_l", Form("%sptrel",muset.Data()),  Form("weight*(%sptrel<5 && %sptrel>0 && %s && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
+  t->Project("h_c", Form("%sptrel",muset.Data()),  Form("weight*(%sptrel<5 && %sptrel>0 && %s && abs(refparton_flavorForB)==4 && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
+  t->Project("h_b",  Form("%sptrel",muset.Data()), Form("weight*(%sptrel<5 && %sptrel>0 && %s && abs(refparton_flavorForB)==5 && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
+  t->Project("h_all",Form("%sptrel",muset.Data()), Form("weight*(%sptrel<5 && %sptrel>0 && %s && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
   h_l->SetFillColor(kblue); h_c->SetFillColor(kgreen); h_b->SetFillColor(kred);
   h_l->SetFillStyle(1001); h_c->SetFillStyle(1001); h_b->SetFillStyle(1001);
   h_all->SetLineColor(kBlack);
@@ -84,13 +87,17 @@ void Draw_PtRel()
   TFile *fd = new TFile("jettrig_weight.root");
   TTree *td = (TTree *)fd->Get("nt");
 
+  //in the data...
+  muset = "mu";//"jetmuon"
+  physicscut = Form("jtpt>60 && %spt>5",muset.Data());
+
   TH1F *hd_all = new TH1F("hd_all","hd_all;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
   TH1F *hd_tag = new TH1F("hd_tag","hd_tag;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
   TH1F *hd_untag = new TH1F("hd_untag","hd_untag;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
 
-  td->Project("hd_all","muptrel",Form("weightJet*(muptrel>0 && muptrel<5 && %s)",physicscut));
-  td->Project("hd_tag","muptrel",Form("weightJet*(muptrel>0 && muptrel<5 && %s && discr_csvSimple>%f)",physicscut,discr));
-  td->Project("hd_untag","muptrel",Form("weightJet*(muptrel>0 && muptrel<5 && %s && discr_csvSimple<%f)",physicscut,discr));
+  td->Project("hd_all",Form("%sptrel",muset.Data()),Form("weightJet*(%sptrel>0 && %sptrel<5 && %s)",muset.Data(),muset.Data(),physicscut));
+  td->Project("hd_tag",Form("%sptrel",muset.Data()),Form("weightJet*(%sptrel>0 && %sptrel<5 && %s && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
+  td->Project("hd_untag",Form("%sptrel",muset.Data()),Form("weightJet*(%sptrel>0 && %sptrel<5 && %s && discr_csvSimple<%f)",muset.Data(),muset.Data(),physicscut,discr));
   hd_all->SetMarkerColor(kblue);
   hd_untag->SetMarkerColor(kgreen);
 

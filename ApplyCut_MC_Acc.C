@@ -24,6 +24,13 @@ void ProcessEvent(Everything &ev, Everything &evout)
       evout["discr_csvSimple"].push_back(ev["discr_csvSimple"][r]);
       evout["svtxm"].push_back(ev["svtxm"][r]);
 
+      evout["jty"].push_back(ev["jty"][r]);
+      evout["refeta"].push_back(ev["refeta"][r]);
+      evout["refy"].push_back(ev["refy"][r]);
+      evout["refphi"].push_back(ev["refphi"][r]);
+      evout["refparton_pt"].push_back(ev["refparton_pt"][r]);
+
+
       evout["mue"].push_back(ev["mue"][r]);
       evout["mupt"].push_back(ev["mupt"][r]);
       evout["mueta"].push_back(ev["mueta"][r]);
@@ -45,15 +52,16 @@ void ApplyCut_MC_Acc(){
 
   TString sample = "QCDPPb";//bJetPPb
   TString name = Form("%s_HiForest.root",sample.Data());
-  TString outname = Form("%s_temp.root",sample.Data());
+  TString outname = Form("%s_AccCut.root",sample.Data());
   
   
   vector<TString> jetbranches = {
-    "jtpt", "jteta", "jtphi", "rawpt", "refpt", "refparton_flavorForB", "discr_prob", "discr_csvSimple","svtxm",
+    "jtpt", "jteta", "jtphi", "rawpt", "jty", "refeta","refy","refphi","refparton_pt",
+    "refpt", "refparton_flavorForB", "discr_prob", "discr_csvSimple","svtxm",
     "mue", "mupt", "mueta", "muphi", "mudr", "muptrel", "muchg"
   };
 
-  ProcessFile(name, outname, "jet", jetbranches, ProcessEvent);
+  ProcessFile(name, outname, "jet", vector<TString>({"muon","evt"}), jetbranches, vector<TString>({}), ProcessEvent);
 
 
   
