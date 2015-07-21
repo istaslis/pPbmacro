@@ -10,8 +10,8 @@ void Draw_PtRel()
   TTree *t = (TTree *)f->Get("jet");
 
   int bins = 50;
-  float xmin = 0;
-  float xmax = 5;
+  float xmin = -10;
+  float xmax = 0;
 
   TH1F *h_l   = new TH1F("h_l","h_l;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
   TH1F *h_c   = new TH1F("h_c","h_c;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
@@ -20,17 +20,19 @@ void Draw_PtRel()
 
 //mu - discr 0.2
 
-  float discr = 0.1;
+  float discr = -10.;
 
-  TString muset = "jetmuon";//"mu"
-  char * physicscut = Form("jtpt>60 && %spt>5",muset.Data());// && mupt>5
+  TString muset = "jetmuon";//"jetmuon";//"mu"
+  char * var = Form("log(%sip3d)",muset.Data());//ip3d//ptrel
+
+  char * physicscut = Form("jtpt>60 && jtpt<100 && %spt>5",muset.Data());// && mupt>5
 
   cout<<"MC jet content..."<<endl;
   
-  t->Project("h_l", Form("%sptrel",muset.Data()),  Form("weight*(%sptrel<5 && %sptrel>0 && %s && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
-  t->Project("h_c", Form("%sptrel",muset.Data()),  Form("weight*(%sptrel<5 && %sptrel>0 && %s && abs(refparton_flavorForB)==4 && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
-  t->Project("h_b",  Form("%sptrel",muset.Data()), Form("weight*(%sptrel<5 && %sptrel>0 && %s && abs(refparton_flavorForB)==5 && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
-  t->Project("h_all",Form("%sptrel",muset.Data()), Form("weight*(%sptrel<5 && %sptrel>0 && %s && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
+  t->Project("h_l", var,  Form("weight*(%s<0 && %s>-10 && %s && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && discr_csvSimple>%f)",var,var,physicscut,discr));
+  t->Project("h_c", var,  Form("weight*(%s<0 && %s>-10 && %s && abs(refparton_flavorForB)==4 && discr_csvSimple>%f)",var,var,physicscut,discr));
+  t->Project("h_b",  var, Form("weight*(%s<0 && %s>-10 && %s && abs(refparton_flavorForB)==5 && discr_csvSimple>%f)",var,var,physicscut,discr));
+  t->Project("h_all",var, Form("weight*(%s<0 && %s>-10 && %s && discr_csvSimple>%f)",var,var,physicscut,discr));
   h_l->SetFillColor(kblue); h_c->SetFillColor(kgreen); h_b->SetFillColor(kred);
   h_l->SetFillStyle(1001); h_c->SetFillStyle(1001); h_b->SetFillStyle(1001);
   h_all->SetLineColor(kBlack);
@@ -68,9 +70,11 @@ void Draw_PtRel()
   hmctemplate_l->Scale(1/hmctemplate_l->Integral());
 
   TCanvas *ctempl = new TCanvas("ctempl","ctempl",600,600);
-  //hmctemplate_l->Draw("hist");
-  //hmctemplate_c->Draw("hist,same"); 
-  hmctemplate_b->Draw("hist,same");
+  THStack *tstemplate = new THStack("tstemplate",";p_{T}^{rel} [GeV/c]");
+  tstemplate->Add(hmctemplate_l,"hist");
+  tstemplate->Add(hmctemplate_c,"hist"); 
+  tstemplate->Add(hmctemplate_b,"hist");
+  tstemplate->Draw("nostack");
 
   TLegend *ltempl = new TLegend(0.65,0.65,0.84,0.84);
   ltempl->AddEntry(hmctemplate_b,"B","l");

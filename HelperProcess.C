@@ -222,12 +222,11 @@ void ParseNewBranches(vector<TString> branches, vector<TString> &brInt, vector<T
 //}
 
 bool NonFriendBranch(TTree *t, TString branchName)
-{//todo: add more checks...
-  cout<<"NonFriendBranch :"<<branchName<<endl;
-  cout<<t->GetName()<<endl;
+{
   if (t->GetBranch(branchName)==0) return true;
-  cout<<t->GetBranch(branchName)->GetTree()->GetName()<<endl;
-  return t->GetBranch(branchName)->GetTree()->GetName() == t->GetName();
+  TString branchtree = t->GetBranch(branchName)->GetTree()->GetName();
+  TString treename = t->GetName();
+  return branchtree.CompareTo(treename) == 0;
 }
 
 void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, std::function<void(Everything&,Everything&)> processFunc)
@@ -405,10 +404,10 @@ void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TStr
 
     TTimeStamp tsCl0;
     //think about: copy object (timing 10% ->3%) 
-    //Everything evout = ev;
+    Everything evout = ev;
     //or even reference(in place?) (->0.2%)
     //Everything &evout = ev;
-    Everything evout = ev.CloneStructure();
+    //Everything evout = ev.CloneStructure();
     TTimeStamp tsCl1;
     cloneTime+=tsCl1-tsCl0;
 
@@ -455,6 +454,5 @@ void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TStr
 
 
   fout->Close();
-  cout<<"stil file?"<<endl;
   friendTrees.clear();
 }

@@ -5,7 +5,10 @@
 #include "Helpers.h"
 
 vector<TString> branchesMuon = {
-  "Gen_nptl","Gen_pt","Gen_eta","Gen_phi","Glb_nptl","Glb_pt","Glb_eta","Glb_phi"
+  "Gen_nptl","Gen_pt","Gen_eta","Gen_phi",
+  "Glb_nptl","Glb_pt","Glb_eta","Glb_phi", 
+  "Glb_glbChi2_ndof","Glb_nValMuHits","Glb_nMatchedStations","Glb_nValPixHits",
+  "Glb_trkLayerWMeas","Glb_trkDxy","Glb_trkDz","Glb_nValTrkHits","Glb_dxy","Glb_dz"
 };
 
 vector<TString> branchesEvtAna = {

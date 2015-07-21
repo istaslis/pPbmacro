@@ -45,28 +45,54 @@ double getPtRel(float jetpt, float jeteta, float jetphi, float muonpt, float muo
 
 void ProcessEvent(Everything &ev, Everything &evout)
 {
-  for (int j=0;j<ev.GetInt("nref");j++) {
+  int Nmuons = ev.GetInt("Glb_nptl");
+  vector<float> & muonpT = ev["Glb_pt"];
+  vector<float>& muonphi = ev["Glb_phi"];
+  vector<float>& muoneta = ev["Glb_eta"];
+  auto muonchi2ndof = ev["Glb_glbChi2_ndof"];
+  auto muonnhits = ev.GetVInt("Glb_nValMuHits");
+  auto muonpxhits = ev.GetVInt("Glb_nValPixHits");
+  auto muonnMatchedStations = ev.GetVInt("Glb_nMatchedStations");
+  auto muontrkDxy = ev["Glb_trkDxy"];
+  auto muontrkDz = ev["Glb_trkDz"];
+  auto muontrkLayerWM = ev.GetVInt("Glb_trkLayerWMeas");
 
-    float jeteta = ev["jteta"][j], jetpt = ev["jtpt"][j], jetphi = ev["jtphi"][j];
+  //Glb_pt>7 && fabs(Glb_eta)<2 && Glb_nMatchedStations>1  && Glb_glbChi2_ndof<10 && Glb_nValMuHits>0 && Glb_nValPixHits>2 && Glb_trkDxy<0.2 && Glb_trkDz<0.5 && Glb_trkLayerWMeas>5)
+
+  int njets = ev.GetInt("nref");
+  vector<float> &jtpt = ev["jtpt"];
+  vector<float> &jtphi = ev["jtphi"];
+  vector<float> &jteta = ev["jteta"];
+
+
+
+  for (int j=0;j<njets;j++) {
+
+    float jeteta = jteta[j], jetpt = jtpt[j], jetphi = jtphi[j];
     int indexClosest = -1; double dRclosest = 999; 
-    double jetmuonpt=0, jetmuonphi=0, jetmuoneta=0, jetmuonptrel = 0;
+    double jetmuonpt=0, jetmuonphi=0, jetmuoneta=0, jetmuonptrel = 0, jetmuonip3d = 0;
 
-    for (int m=0;m<ev.GetInt("Gen_nptl");m++) {
-      double dR_jm = dR(ev["Gen_phi"][m], ev["Gen_eta"][m], jetphi,jeteta);
-      if (dR_jm<dRclosest) { indexClosest = m; dRclosest = dR_jm; }
-    }
+    for (int m=0;m<Nmuons;m++)
+      if (muonpT[m]>7 && fabs(muoneta[m])<2 && muonnMatchedStations[m]>1 && muonchi2ndof[m]<10 && muonnhits[m]>0 && muonpxhits[m]>2 && muontrkDxy[m]<0.2 && muontrkDz[m]<0.5)
+	{
+	  double dR_jm = dR(muonphi[m], muoneta[m], jetphi,jeteta);
+	  if (dR_jm<0.4 && dR_jm<dRclosest) { indexClosest = m; dRclosest = dR_jm; }
+	}
     
     if (indexClosest>=0) {
-      jetmuonpt = ev["Gen_pt"][indexClosest]; 
-      jetmuonphi = ev["Gen_phi"][indexClosest]; 
-      jetmuoneta = ev["Gen_eta"][indexClosest];
+      jetmuonpt = muonpT[indexClosest]; 
+      jetmuonphi = muonphi[indexClosest]; 
+      jetmuoneta = muoneta[indexClosest];
       jetmuonptrel=getPtRel(jetpt, jeteta, jetphi, jetmuonpt, jetmuoneta, jetmuonphi);
+      jetmuonip3d = sqrt(muontrkDxy[indexClosest]*muontrkDxy[indexClosest] + muontrkDz[indexClosest]*muontrkDz[indexClosest]);
     }
 
     evout["jetmuonpt"].push_back(jetmuonpt);
     evout["jetmuonphi"].push_back(jetmuonphi);
     evout["jetmuoneta"].push_back(jetmuoneta);
     evout["jetmuonptrel"].push_back(jetmuonptrel);
+    evout["jetmuonip3d"].push_back(jetmuonip3d);
+    
 
     
     //copy other jet stuff
@@ -116,10 +142,14 @@ void Merge_MuonJet(){
   vector<TString> jetbranches = {
     "jtpt", "jteta", "jtphi", "rawpt", "refpt", "refparton_flavorForB", "discr_prob", "discr_csvSimple","svtxm",
      "jty", "refeta","refy","refphi","refparton_pt",
-    "mue", "mupt", "mueta", "muphi", "mudr", "muptrel", "muchg","Gen_nptl","Gen_eta","Gen_phi","Gen_pt"
+    "mue", "mupt", "mueta", "muphi", "mudr", "muptrel", "muchg",
+    "Glb_nptl","Glb_eta","Glb_phi","Glb_pt", 
+    "Gen_nptl","Gen_eta","Gen_phi","Gen_pt", 
+    "Glb_glbChi2_ndof","Glb_nValMuHits","Glb_nMatchedStations","Glb_nValPixHits","Glb_trkLayerWMeas","Glb_trkDxy","Glb_trkDz"
   };
 
-  vector<TString> newbranches = {"Njetmuon/I:jetmuonpt/F,jetmuoneta/F,jetmuonphi/F,jetmuonptrel/F"};
+
+  vector<TString> newbranches = {"Njetmuon/I:jetmuonpt/F,jetmuoneta/F,jetmuonphi/F,jetmuonptrel/F,jetmuonip3d/F"};
 
   ProcessFile(name, outname, "jet", vector<TString> ({"muon","evt"}), jetbranches, newbranches, ProcessEvent);
 

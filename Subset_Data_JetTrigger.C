@@ -45,12 +45,14 @@ void Subset_Data_JetTrigger()
   TChain* ch2 = new TChain("hltanalysis/HltTree","hlt triggers");
   TChain* ch3 = new TChain("akPu4PFJetAnalyzer/t","jets");
   TChain* ch4 = new TChain("hiEvtAnalyzer/HiTree","hiEvent");
+  TChain* ch5 = new TChain("hltMuTree/HLTMuTree","muons");
 
   AddFilesToChain(ch);
   AddFilesToChain(ch2);
   AddFilesToChain(ch3);
   AddFilesToChain(ch4);
-
+  AddFilesToChain(ch5);
+  
 
 
   int nEntries = ch->GetEntries();
@@ -89,6 +91,12 @@ void Subset_Data_JetTrigger()
   float           muptrel[MAXSIZE];
   int             bin;
 
+  int             Glb_nptl;
+  float           Glb_pt[MAXSIZE];
+  float           Glb_eta[MAXSIZE];
+  float           Glb_phi[MAXSIZE];
+
+
   ch->SetBranchAddress("id", &id);
   ch->SetBranchAddress("pt", &pt);
   ch->SetBranchAddress("eta", &eta);
@@ -125,6 +133,11 @@ void Subset_Data_JetTrigger()
   ch3->SetBranchAddress("muptrel", muptrel);
   
   ch4->SetBranchAddress("hiBin", &bin);
+
+  ch5->SetBranchAddress("Glb_nptl",&Glb_nptl);
+  ch5->SetBranchAddress("Glb_pt",Glb_pt);
+  ch5->SetBranchAddress("Glb_eta",Glb_eta);
+  ch5->SetBranchAddress("Glb_phi",Glb_phi);
 
 
 
@@ -170,6 +183,13 @@ void Subset_Data_JetTrigger()
 
   //from hiEvtAnalyzer/HiTree:hiBin
   nt->Branch("bin",&bin,"bin/I");
+
+
+  nt->Branch("Glb_nptl",&Glb_nptl,"Glb_nptl/I");
+  nt->Branch("Glb_pt",Glb_pt, "Glb_pt[Glb_nptl]/F");
+  nt->Branch("Glb_eta",Glb_eta,"Glb_eta[Glb_nptl]/F");
+  nt->Branch("Glb_phi",Glb_phi,"Glb_phi[Glb_nptl]/F");
+
 
   int oneperc = nEntries/100;
 
