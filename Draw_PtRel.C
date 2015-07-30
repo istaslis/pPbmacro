@@ -1,45 +1,119 @@
-
-void FitB(TH1F *mc_b, TH1F *mc_cl, TH1F *data)
+double GetIntegral(TH1F *h, bool full = false)
 {
-
+  return full ? h->Integral(0,h->GetNbinsX()+1) : h->Integral();
 }
 
 void Draw_PtRel()
 {
-  TFile *f = new TFile("QCDPPb_genmuonmerged.root");
+  const char *datafilename = "jettrig_weight_AccCut_muons.root";//"jettrig_weight_AccCut.root");//"jettrig_weight_AccCut_muons.root");//"jettrig_weight.root");
+
+  TFile *f = new TFile("QCDPPb_genmuonmerged.root"); //"QCDPPb_AccCut.root");//"QCDPPb_genmuonmerged.root");
   TTree *t = (TTree *)f->Get("jet");
 
-  int bins = 50;
-  float xmin = -10;
-  float xmax = 0;
+  float xmin =0, xmax =3;
 
-  TH1F *h_l   = new TH1F("h_l","h_l;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
-  TH1F *h_c   = new TH1F("h_c","h_c;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
-  TH1F *h_b   = new TH1F("h_b","h_b;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
-  TH1F *h_all = new TH1F("h_all","h_all;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
+  float legendx1 = 0.65, legendy1 = 0.65, legendx2 = 0.84, legendy2 = 0.84;
+  //float legendx1 = 0.16, legendy1 = 0.65, legendx2 = 0.34, legendy2 = 0.84;
 
-//mu - discr 0.2
+  TString muset = "jetmuon";//"mu"
 
-  float discr = -10.;
 
-  TString muset = "jetmuon";//"jetmuon";//"mu"
-  char * var = Form("log(%sip3d)",muset.Data());//ip3d//ptrel
+  const char *discr = "jetmuonpt>7";
+  const char *discrData = "jetmuonpt>7";
 
-  char * physicscut = Form("jtpt>60 && jtpt<100 && %spt>5",muset.Data());// && mupt>5
+  //  const char *discr = "discr_csvSimple>0.5";
+  //  const char *discrData = "discr_csvSimple>0.5";
+
+  //  const char *discr = "discr_ssvHighPur>1.68";
+  //  const char *discrData = "discr_ssvHighPur>1.68";
+  
+  int bins = 10;//16;
+  bool logplots = false;
+
+  TString variable = "ptrel";
+                      //"ip3d";
+                     //"jp";
+
+  TString sVar, sTitle, sPhysicsCut;
+
+  if (variable=="ptrel") {
+    sVar =  Form("%sptrel",muset.Data());
+    sTitle = "p_{T}^{rel} [GeV/c]";
+    sPhysicsCut = "jtpt>60 && jtpt<100";//Form("jtpt>60 && jtpt<100 && %spt>7",muset.Data());
+    xmin = 0; xmax = 4;
+    }
+  else if (variable=="ip3d") {
+    sVar = Form("log(%sip3d)",muset.Data());
+    sTitle = "log(3d IP)";
+    sPhysicsCut = "jtpt>60 && jtpt<100";//Form("jtpt>60 && jtpt<100 && %spt>7",muset.Data());
+    xmin = -10; xmax = 0;
+  } else if (variable=="jp") {
+    sVar = "discr_prob";
+    sTitle = "JP";
+    sPhysicsCut = "jtpt>60 && jtpt<100";
+    bins=16;
+    logplots = true;
+  }
+
+  const char * var = sVar.Data();
+  const char * title = sTitle.Data();
+  const char * physicscut = sPhysicsCut.Data();
+
+
+  TH1F *h_l   = new TH1F("h_l",Form("h_l;%s",title),bins, xmin, xmax);
+  TH1F *h_c   = new TH1F("h_c",Form("h_c;%s",title),bins, xmin, xmax);
+  TH1F *h_b   = new TH1F("h_b",Form("h_b;%s",title),bins, xmin, xmax);
+  TH1F *h_all = new TH1F("h_all",Form("h_all;%s",title),bins, xmin, xmax);
+  TH1F *h_mctotal = new TH1F("h_mctotal",Form("h_mctotal;%s",title),bins, xmin, xmax);
+  TH1F *h_mctotalb = new TH1F("h_mctotalb",Form("h_mctotalb;%s",title),bins, xmin, xmax);
+  TH1F *h_mctotalc = new TH1F("h_mctotalc",Form("h_mctotalc;%s",title),bins, xmin, xmax);
+
 
   cout<<"MC jet content..."<<endl;
   
-  t->Project("h_l", var,  Form("weight*(%s<0 && %s>-10 && %s && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && discr_csvSimple>%f)",var,var,physicscut,discr));
-  t->Project("h_c", var,  Form("weight*(%s<0 && %s>-10 && %s && abs(refparton_flavorForB)==4 && discr_csvSimple>%f)",var,var,physicscut,discr));
-  t->Project("h_b",  var, Form("weight*(%s<0 && %s>-10 && %s && abs(refparton_flavorForB)==5 && discr_csvSimple>%f)",var,var,physicscut,discr));
-  t->Project("h_all",var, Form("weight*(%s<0 && %s>-10 && %s && discr_csvSimple>%f)",var,var,physicscut,discr));
+  t->Project("h_l", var,  Form("100000*weight*(%s && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && %s)",physicscut,discr));
+  t->Project("h_c", var,  Form("100000*weight*(%s && abs(refparton_flavorForB)==4 && %s)",physicscut,discr));
+  t->Project("h_b",  var, Form("100000*weight*(%s && abs(refparton_flavorForB)==5 && %s)",physicscut,discr));
+  t->Project("h_all",var, Form("100000*weight*(%s && %s)",physicscut,discr));
+
+  t->Project("h_mctotal",var, Form("100000*weight*(%s)",physicscut));
+  t->Project("h_mctotalb",var, Form("100000*weight*(%s && abs(refparton_flavorForB)==5)",physicscut));
+  t->Project("h_mctotalc",var, Form("100000*weight*(%s && abs(refparton_flavorForB)==4)",physicscut));
+
   h_l->SetFillColor(kblue); h_c->SetFillColor(kgreen); h_b->SetFillColor(kred);
   h_l->SetFillStyle(1001); h_c->SetFillStyle(1001); h_b->SetFillStyle(1001);
   h_all->SetLineColor(kBlack);
 
 
+  double mctaggedb = GetIntegral(h_b,true);
+  double mctaggedc = GetIntegral(h_c,true);
+  double mctaggedl = GetIntegral(h_l,true);
+  double mctaggedall = GetIntegral(h_all,true);
 
-  THStack *hs =new THStack("hs",";p_{T}^{rel} [GeV/c]");
+
+
+  double mctotal = GetIntegral(h_mctotal,true);
+  double mctotalb = GetIntegral(h_mctotalb,true);
+  double mctotalc = GetIntegral(h_mctotalc,true);
+
+  double mcBfraction = mctotalb/mctotal;
+  double mcCfraction = mctotalc/mctotal;
+
+  double mctagBEff = mctaggedb/mctotalb;
+  double mctagCEff = mctaggedc/mctotalc;
+
+
+
+
+
+//  h_l->Smooth();
+//  h_c->Smooth();
+//  h_b->Smooth();
+  //  h_all->Smooth();
+
+
+
+  THStack *hs =new THStack("hs",Form(";%s",title));
   hs->Add(h_b,"hist");
   hs->Add(h_c,"hist");
   hs->Add(h_l,"hist");
@@ -48,13 +122,14 @@ void Draw_PtRel()
   hs->Draw();
   h_all->Draw("same");
 
-  TLegend *l = new TLegend(0.65,0.65,0.84,0.84);// l->SetFillStyle(0);
+  TLegend *l = new TLegend(legendx1, legendy1, legendx2, legendy2);// l->SetFillStyle(0);
   l->AddEntry(h_b,"B","f");
   l->AddEntry(h_c,"C","f");
   l->AddEntry(h_l,"L","f");
   l->AddEntry(h_all,"all","pl");
   l->Draw();
 
+  c->SetLogy(logplots);
   c->SaveAs("MCjetContentTagged.pdf");
   c->Update();
 
@@ -62,6 +137,7 @@ void Draw_PtRel()
   TH1F *hmctemplate_c = (TH1F*)h_c->Clone("hmctemplate_c");
   TH1F *hmctemplate_l = (TH1F*)h_l->Clone("hmctemplate_l");
   hmctemplate_l->SetLineColor(kblue); hmctemplate_c->SetLineColor(kgreen); hmctemplate_b->SetLineColor(kred);
+  hmctemplate_l->SetMarkerColor(kblue); hmctemplate_c->SetMarkerColor(kgreen); hmctemplate_b->SetMarkerColor(kred);
   hmctemplate_l->SetFillStyle(0); hmctemplate_c->SetFillStyle(0); hmctemplate_b->SetFillStyle(0);
   hmctemplate_l->SetLineWidth(3); hmctemplate_c->SetLineWidth(3); hmctemplate_b->SetLineWidth(3);
 
@@ -70,40 +146,47 @@ void Draw_PtRel()
   hmctemplate_l->Scale(1/hmctemplate_l->Integral());
 
   TCanvas *ctempl = new TCanvas("ctempl","ctempl",600,600);
-  THStack *tstemplate = new THStack("tstemplate",";p_{T}^{rel} [GeV/c]");
-  tstemplate->Add(hmctemplate_l,"hist");
-  tstemplate->Add(hmctemplate_c,"hist"); 
-  tstemplate->Add(hmctemplate_b,"hist");
+  THStack *tstemplate = new THStack("tstemplate",Form(";%s",title));
+  tstemplate->Add(hmctemplate_l,"E1");
+  tstemplate->Add(hmctemplate_c,"E1"); 
+  tstemplate->Add(hmctemplate_b,"E1");
   tstemplate->Draw("nostack");
 
-  TLegend *ltempl = new TLegend(0.65,0.65,0.84,0.84);
+  TLegend *ltempl = new TLegend(legendx1, legendy1, legendx2, legendy2);
   ltempl->AddEntry(hmctemplate_b,"B","l");
   ltempl->AddEntry(hmctemplate_c,"C","l");
   ltempl->AddEntry(hmctemplate_l,"L","l");
   ltempl->Draw();
 
+  ctempl->SetLogy(logplots);
+
   ctempl->SaveAs("MCTemplates.pdf");
+
 
 
 
   cout<<"Data jet all and tagged..."<<endl;
 
-  TFile *fd = new TFile("jettrig_weight.root");
-  TTree *td = (TTree *)fd->Get("nt");
+  TFile *fd = new TFile(datafilename);
+  TTree *td = (TTree *)fd->Get("jet");
 
   //in the data...
-  muset = "mu";//"jetmuon"
-  physicscut = Form("jtpt>60 && %spt>5",muset.Data());
+  //  muset = "mu";//"jetmuon"
+  //physicscut = "jtpt>60 && jtpt<100";//Form("jtpt>60 && jtpt<100 %spt>5",muset.Data());
 
-  TH1F *hd_all = new TH1F("hd_all","hd_all;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
-  TH1F *hd_tag = new TH1F("hd_tag","hd_tag;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
-  TH1F *hd_untag = new TH1F("hd_untag","hd_untag;p_{T}^{rel} [GeV/c]",bins, xmin, xmax);
+  TH1F *hd_all = new TH1F("hd_all",Form("hd_all;%s",title),bins, xmin, xmax);
+  TH1F *hd_tag = new TH1F("hd_tag",Form("hd_tag;%s",title),bins, xmin, xmax);
+  TH1F *hd_untag = new TH1F("hd_untag",Form("hd_untag;%s",title),bins, xmin, xmax);
 
-  td->Project("hd_all",Form("%sptrel",muset.Data()),Form("weightJet*(%sptrel>0 && %sptrel<5 && %s)",muset.Data(),muset.Data(),physicscut));
-  td->Project("hd_tag",Form("%sptrel",muset.Data()),Form("weightJet*(%sptrel>0 && %sptrel<5 && %s && discr_csvSimple>%f)",muset.Data(),muset.Data(),physicscut,discr));
-  td->Project("hd_untag",Form("%sptrel",muset.Data()),Form("weightJet*(%sptrel>0 && %sptrel<5 && %s && discr_csvSimple<%f)",muset.Data(),muset.Data(),physicscut,discr));
+  td->Project("hd_all",var,Form("weightJet*(%s)",physicscut));
+  td->Project("hd_tag",var,Form("weightJet*(%s && %s)",physicscut,discrData));
+  td->Project("hd_untag",var,Form("weightJet*(%s && !(%s))",physicscut,discrData));
   hd_all->SetMarkerColor(kblue);
   hd_untag->SetMarkerColor(kgreen);
+
+  double datatagged = GetIntegral(hd_tag,true);
+  double dataall = GetIntegral(hd_all,true);
+
 
   TCanvas *cd = new TCanvas("cd","cd",600,600);
 
@@ -111,12 +194,13 @@ void Draw_PtRel()
   hd_tag->Draw("same");
   hd_untag->Draw("same");
 
-  TLegend *ld = new TLegend(0.65,0.65,0.84,0.84);// l->SetFillStyle(0);
+  TLegend *ld = new TLegend(legendx1, legendy1, legendx2, legendy2);// l->SetFillStyle(0);
   ld->AddEntry(hd_all,"all","P");
   ld->AddEntry(hd_tag,"tagged","P");
   ld->AddEntry(hd_untag,"untagged","P");
   ld->Draw();
 
+  cd->SetLogy(logplots);
   cd->SaveAs("DataAllTagged.pdf");
   cd->Update();
 
@@ -140,7 +224,7 @@ void Draw_PtRel()
   fit->Constrain(2,0.0,1.0);
   fit->Fit();
   TH1F* prediction = (TH1F*) fit->GetPlot();
-
+  
 
 
   cout<<fit->GetProb()<<endl;
@@ -152,45 +236,123 @@ void Draw_PtRel()
 
   //  cout<<fit->GetResult(0,x1,x1e)<<endl;
 
-  double total = prediction->Integral();
+  double total = GetIntegral(prediction);
   double num_b = total*x1, num_be = total*x1e;
   double num_c = total*x2, num_ce = total*x2e;
   double num_l = total*x3, num_le = total*x3e;
 
-  hmc_b->Scale(1/hmc_b->Integral()*num_b);
-  hmc_c->Scale(1/hmc_c->Integral()*num_c);
-  hmc_l->Scale(1/hmc_l->Integral()*num_l);
+  hmc_b->Scale(1/GetIntegral(hmc_b)*num_b);
+  hmc_c->Scale(1/GetIntegral(hmc_c)*num_c);
+  hmc_l->Scale(1/GetIntegral(hmc_l)*num_l);
 
-  THStack *hsf =new THStack("hsf",";p_{T}^{rel} [GeV/c]");
+  TCanvas *ccomp = new TCanvas("ccomp","ccomp",600,600);
+  TH1F *pred_b = (TH1F *)fit->GetMCPrediction(0);
+  TH1F *hmc_bclone = (TH1F *)hmc_b->Clone("hmc_bclone");
+  pred_b->Scale(1/GetIntegral(pred_b)*num_b);
+
+  pred_b->SetLineColor(kBlack); pred_b->SetFillStyle(0); pred_b->SetLineWidth(3);
+  hmc_bclone->SetLineColor(kRed); hmc_bclone->SetFillStyle(0); hmc_bclone->SetLineWidth(3);
+  pred_b->Draw("hist");
+  hmc_bclone->Draw("hist,same");
+
+  TLegend *lcomp = new TLegend(legendx1, legendy1, legendx2, legendy2);// l->SetFillStyle(0);
+  lcomp->AddEntry(hmc_bclone,"MC b template","l");
+  lcomp->AddEntry(pred_b,"Prediction b template","l");
+  lcomp->Draw();
+  ccomp->SaveAs("btemplatecompare.pdf");
+
+
+  TH1F *hmc_total = (TH1F *)hmc_b->Clone("hmc_total");
+  hmc_total->Add(hmc_c);
+  hmc_total->Add(hmc_l);
+  hmc_total->SetLineColor(7);
+  hmc_total->SetLineWidth(4);
+  hmc_total->SetMarkerStyle(1);
+
+  THStack *hsf =new THStack("hsf",Form(";%s",title));
 
   hsf->Add(hmc_b,"hist");
   hsf->Add(hmc_c,"hist");
   hsf->Add(hmc_l,"hist");
   
 
+
+
   //prediction->Integral() == hd_tag->Integral() so it's basically the same thing
-  
+  h_all->Scale(GetIntegral(prediction)/GetIntegral(h_all));
+  h_all->SetMarkerColor(kGray);
+  h_all->SetLineColor(kGray);
+
+
   TCanvas *cf = new TCanvas("cf","cf",600,600);
-  hsf->Draw();
+  hd_tag->Draw("Ep");
+  hsf->Draw("same");
+  hmc_total->Draw("Epsame");
   hd_tag->Draw("Epsame");
-  TLegend *lf = new TLegend(0.65,0.65,0.84,0.84);// l->SetFillStyle(0);
-  lf->AddEntry(hmc_b,"Fit B","f");
-  lf->AddEntry(hmc_c,"Fit C","f");
-  lf->AddEntry(hmc_l,"Fit L","f");
-  lf->AddEntry(hd_tag,"Data tagged","P");
+  
+  //  hsf->SetMaximum(1.1E8);  
+  //  hsf->SetMinimum(1.);
+  //  hsf->Draw();
+
+  //  h_all->Draw("Epsame");
+  TLegend *lf = new TLegend(legendx1, legendy1, legendx2, legendy2);// l->SetFillStyle(0);
+  lf->AddEntry(hmc_b,"B","f");
+  lf->AddEntry(hmc_c,"C","f");
+  lf->AddEntry(hmc_l,"L","f");
+  lf->AddEntry(hd_tag,"Data","P");
+  //  lf->AddEntry(hmc_total,"MC","L");
   lf->Draw();
-
-
-  cout<<"Number of b-jets  : "<<num_b<<" ± "<<num_be<<endl;
-  cout<<"Number of c-jets : "<<num_c<<" ± "<<num_ce<<endl;
-  cout<<"Number of l-jets : "<<num_l<<" ± "<<num_le<<endl;
-
-  cout<<"Fit quality : "<<fit->GetChisquare() / fit->GetNDF()<<endl;
+  cf->SetLogy(logplots);
 
   cf->SaveAs("FitTagged.pdf");
   cf->Update();
 
 
+  cout<<setprecision(2);
+
+  cout<<"MC : "<<endl;
+  
+  cout<<"Fraction of b-jets : "<<mctaggedb/mctaggedall*100<<"%"<<endl;
+  cout<<"Fraction of c-jets : "<<mctaggedc/mctaggedall*100<<"%"<<endl;
+  cout<<"Fraction of l-jets : "<<mctaggedl/mctaggedall*100<<"%"<<endl;
+
+  cout<<(mctaggedb+mctaggedc+mctaggedl)/mctaggedall<<endl;
+
+
+  cout<<"Data : "<<endl;
+
+  cout<<"Number of b-jets  : "<<num_b<<" ± "<<num_be<<endl;
+  cout<<"Number of c-jets : "<<num_c<<" ± "<<num_ce<<endl;
+  cout<<"Number of l-jets : "<<num_l<<" ± "<<num_le<<endl;
+
+  //  cout<<setprecision(2);
+
+  cout<<"Fraction of b-jets : "<<x1*100<<"% ± "<<x1e*100<<endl;
+  cout<<"Fraction of c-jets : "<<x2*100<<"% ± "<<x2e*100<<endl;
+  cout<<"Fraction of l-jets : "<<x3*100<<"% ± "<<x3e*100<<endl;
+
+  cout<<"Fit quality : "<<fit->GetChisquare() / fit->GetNDF()<<endl;
+
+
+  double tagPurityB = x1;
+  double tagPurityC = x2;
+
+  double bjetfraction = datatagged*tagPurityB/mctagBEff/dataall;
+  double cjetfraction = datatagged*tagPurityC/mctagCEff/dataall;
+
+  cout<<"datatagged:"<<datatagged<<endl;
+  cout<<"dataall:"<<dataall<<endl;
+
+  cout<<"MC b-tagging efficiency : "<<mctagBEff<<endl;
+  cout<<"MC c-tagging efficiency : "<<mctagCEff<<endl;
+
+  std::cout.unsetf ( std::ios::floatfield ); 
+
+  cout <<"b-jet fraction in MC: "<<mcBfraction<<endl;
+  cout <<"c-jet fraction in MC: "<<mcCfraction<<endl;
+
+  cout <<"b-jet fraction in data: "<<bjetfraction<<endl;
+  cout <<"c-jet fraction in data: "<<cjetfraction<<endl;
 
 
 
