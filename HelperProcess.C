@@ -404,10 +404,11 @@ void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TStr
 
     TTimeStamp tsCl0;
     //think about: copy object (timing 10% ->3%) 
-    Everything evout = ev;
+    //but it copies vectors, so push_back will add in the end...
+    //    Everything evout = ev;
     //or even reference(in place?) (->0.2%)
     //Everything &evout = ev;
-    //Everything evout = ev.CloneStructure();
+    Everything evout = ev.CloneStructure();
     TTimeStamp tsCl1;
     cloneTime+=tsCl1-tsCl0;
 
