@@ -25,7 +25,7 @@ void makeFile(char *fname)
 
   for (i=0;i<10000;i++){
     f=gRandom->Gaus();
-    n=gRandom->Integer(i);
+    n=gRandom->Integer(1000);
    
     vi.clear(); vf.clear(); vk.clear();
     for (int l=0;l<k;l++) vk.push_back(gRandom->Gaus());
@@ -46,21 +46,18 @@ void makeFile(char *fname)
 
 void ProcessEvent(Everything &ev, Everything &evout)
 {
-  auto i=ev.GetInt("i");
-  auto f=ev.GetFloat("f");
-  auto vi=ev.GetVInt("vi");
-  auto vf=ev["vf"];
+  //auto i=ev.GetInt("i");
+  auto n=ev.GetInt("n");
+  //auto f=ev.GetFloat("f");
+  //auto vi=ev.GetVInt("vi");
+  //auto vf=ev["vf"];
   
-  for (int j=1;j<vi.size();j++) {
-    evout.GetVInt("vi").push_back(vi[j]);
-    evout["vf"].push_back(vf[j]);
 
-    evout["newVI"].push_back(vf[j]);
+  for (int j=1;j<n;j++) {
+    evout.AddRow(ev,"n",j);
+
+    //evout["newVI"].push_back(vf[j]);
   }
-
-  evout.PutInt("n",vi.size()-1);
-  evout.PutInt("newN",vi.size()-1);
-
 }
 
 
@@ -70,7 +67,7 @@ void testHelper()
   makeFile("testHelper1.root");
 
   cout<<"Processing..."<<endl;
-  ProcessFile("testHelper1.root","testHelper2.root","t",vector<TString>(),vector<TString>({"i","f","vi","vf"}),
+  ProcessFile("testHelper1.root","testHelper2.root","t",vector<TString>(),vector<TString>({"i","f","vf"}),
 	      vector<TString>({"newN/I:newVI/F"}),ProcessEvent);
 
 

@@ -12,10 +12,10 @@
 #include "TLeaf.h"
 
 const int NMAX = 10000;
+const bool UNSAFEMAP = true;
 
-//LIMITATIONS
-//int branches are for counting only
-//adding: float branch only
+//so far - global veriables
+vector<TString> brInt, brFloat, brVInt, brVIntCounter, brVFloat, brVFloatCounter;
 
 
 class Everything {
@@ -25,8 +25,54 @@ public:
   map<TString, vector<int> > mapVInt;
   map<TString, vector<float> > mapVFloat;
 
+  void AddRow(Everything &ev, TString counter, int N)
+  {
+    for (int i=0;i<brVIntCounter.size();i++)
+      if (brVIntCounter[i]==counter) GetVInt(brVInt[i]).push_back(ev.GetVInt(brVInt[i])[N]);
+    for (int i=0;i<brVFloatCounter.size();i++)
+      if (brVFloatCounter[i]==counter) GetVFloat(brVFloat[i]).push_back(ev[brVFloat[i]][N]);
+
+  }
+
+  bool UpdateCounters()
+  {
+    vector<TString> counter; vector<int> nums;
+    for (int i=0;i<brVIntCounter.size();i++) {
+      unsigned n = std::find(counter.begin(), counter.end(), brVIntCounter[i]) - counter.begin();
+      unsigned cursize = GetVInt(brVInt[i]).size();
+      if (n!=counter.size()) {
+        if (cursize!=nums[n]) {
+          cout<<"Wrong dimensions in table "<<brVIntCounter[i]
+              <<" Column "<<brVInt[i]<<" has "<<cursize
+              <<" elements while others have "<<nums[n]<<endl; 
+          return false;
+        }
+      }
+      else { counter.push_back(brVIntCounter[i]); nums.push_back(cursize); }
+    }
+
+    for (int i=0;i<brVFloatCounter.size();i++) {
+      unsigned n = std::find(counter.begin(), counter.end(), brVFloatCounter[i]) - counter.begin();
+      unsigned cursize = GetVFloat(brVFloat[i]).size();
+      if (n!=counter.size()) {
+        if (cursize!=nums[n]) {
+          cout<<"Wrong dimensions in table "<<brVFloatCounter[i]
+              <<" Column "<<brVInt[i]<<" has "<<cursize
+              <<" elements while others have "<<nums[n]<<endl; 
+          return false;
+        }
+      }
+      else { counter.push_back(brVFloatCounter[i]); nums.push_back(cursize); }
+    }
+
+    for (int i=0;i<counter.size();i++) PutInt(counter[i], nums[i]);
+
+    return true;
+  }
+
   int GetInt(TString name)
   {
+    if (UNSAFEMAP) return mapInt[name];
     if (mapInt.find(name) != mapInt.end())
       return mapInt[name];
     else
@@ -36,6 +82,7 @@ public:
 
   float GetFloat(TString name)
   {
+    if (UNSAFEMAP) return mapFloat[name];
     if (mapFloat.find(name) != mapFloat.end())
       return mapFloat[name];
     else
@@ -45,20 +92,20 @@ public:
 
   vector<float> &GetVFloat(TString name)
   {
+    if (UNSAFEMAP) return mapVFloat[name];
     if (mapVFloat.find(name) != mapVFloat.end())
       return mapVFloat[name];
-          else  {
+    else  {
       cout<<"No float vector with name "<<name<<" ! Creating one..."<<endl;
       vector<float> t;
       mapVFloat[name]=t;      
       return mapVFloat[name];
-      }
-
-  //  unsafe way of the same thing
-  //  return mapVFloat[name]; 
+    }
   }
+  
   vector<int> &GetVInt(TString name)
   {
+    if (UNSAFEMAP) return mapVInt[name];
     if (mapVInt.find(name) != mapVInt.end())
       return mapVInt[name];
     else  {
@@ -78,16 +125,19 @@ public:
   void PutInt(TString name, int value)
   {
     mapInt[name] = value;
+    //mapInt.emplace(name,value);
   }
 
   void PutFloat(TString name, int value)
   {
     mapFloat[name] = value;
+    //mapFloat.emplace(name,value);
   }
 
   void PutVFloat(TString name, vector<float> value)
   {
     mapVFloat[name] = value;
+    //mapVFloat.emplace(name,value);
   }
 
   void PutVFloat(TString name, TString counterName, vector<float> &value)
@@ -95,11 +145,13 @@ public:
     int count = GetInt(counterName);
     vector<float> v(value.begin(), value.begin()+count);
     mapVFloat[name] = v;
+    //mapVFloat.emplace(name,value);
   }
 
   void PutVInt(TString name, vector<int> value)
   {
     mapVInt[name] = value;
+    //mapVInt.emplace(name,value);
   }
 
   void PutVInt(TString name, TString counterName, vector<int> &value)
@@ -107,6 +159,7 @@ public:
     int count = GetInt(counterName);
     vector<int> v(value.begin(), value.begin()+count);
     mapVInt[name] = v;
+    //mapVInt.emplace(name,value);
   }
 
   void PutArray(TString name, int len, float *arr)
@@ -229,6 +282,7 @@ bool NonFriendBranch(TTree *t, TString branchName)
   return branchtree.CompareTo(treename) == 0;
 }
 
+
 void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, std::function<void(Everything&,Everything&)> processFunc)
 {
   TFile *fin = new TFile(fileIn);
@@ -248,7 +302,7 @@ void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TStr
     friendTrees.push_back(tfriend);
   }
 
-  vector<TString> brInt, brFloat, brVInt, brVIntCounter, brVFloat, brVFloatCounter;
+
 
   //sort branches into categories
   for (auto bName:branches) {
@@ -415,6 +469,7 @@ void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TStr
     //cout<<"will process..."<<endl;
     TTimeStamp tsPr0;
     processFunc(ev, evout);
+    evout.UpdateCounters();
     TTimeStamp tsPr1;  
     processingTime+=tsPr1-tsPr0;
     //cout<<"processed!"<<endl;
