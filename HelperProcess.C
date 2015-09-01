@@ -102,7 +102,7 @@ public:
       return mapVFloat[name];
     }
   }
-  
+
   vector<int> &GetVInt(TString name)
   {
     if (UNSAFEMAP) return mapVInt[name];
@@ -282,13 +282,27 @@ bool NonFriendBranch(TTree *t, TString branchName)
   return branchtree.CompareTo(treename) == 0;
 }
 
+map<TString, vector<TString> >GetCounterBranchListMap(TTree *t)
+{
+  map<TString, vector<TString> > m;
+  TObjArray *l = t->GetListOfLeaves();
+  int n = l->GetEntries();
+  for (int i=0;i<n;i++) {
+    TLeaf * leaf = (TLeaf *)(*l)[i];
+    TLeaf *lc = leaf->GetLeafCount();
+    if (lc!=0) {
+      m[lc->GetName()].push_back(leaf->GetName()); //leaf name == branch name!
+      cout<<lc->GetName()<<" _ "<<leaf->GetName()<<endl;
+    }
+  }
+
+  return m;
+}
 
 void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, std::function<void(Everything&,Everything&)> processFunc)
 {
   TFile *fin = new TFile(fileIn);
   TTree *tjet = (TTree*)fin->Get(treename);
-
-  //  auto originalBranchesList = GetBranchesList(tjet);
 
   vector<TTree *> friendTrees;
   vector<bool> sameFileFriend;
@@ -303,6 +317,13 @@ void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TStr
   }
 
 
+  //add arrays if there is a counter in the list
+  auto leafcounters = GetCounterBranchListMap(tjet); //may be not working with friends!
+  vector<TString> fromcounters;
+  for (auto bName:branches) 
+    if (leafcounters[bName].size()!=0) 
+      for (auto x:leafcounters[bName]) fromcounters.push_back(x);
+  for (auto x:fromcounters) branches.push_back(x);
 
   //sort branches into categories
   for (auto bName:branches) {

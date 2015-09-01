@@ -50,13 +50,13 @@ void ProcessEvent(Everything &ev, Everything &evout)
   auto n=ev.GetInt("n");
   //auto f=ev.GetFloat("f");
   //auto vi=ev.GetVInt("vi");
-  //auto vf=ev["vf"];
+  auto vf=ev["vf"];
   
 
   for (int j=1;j<n;j++) {
     evout.AddRow(ev,"n",j);
 
-    //evout["newVI"].push_back(vf[j]);
+    evout["newVI"].push_back(vf[j]);
   }
 }
 
@@ -67,7 +67,7 @@ void testHelper()
   makeFile("testHelper1.root");
 
   cout<<"Processing..."<<endl;
-  ProcessFile("testHelper1.root","testHelper2.root","t",vector<TString>(),vector<TString>({"i","f","vf"}),
+  ProcessFile("testHelper1.root","testHelper2.root","t",vector<TString>(),vector<TString>({"n"}),
 	      vector<TString>({"newN/I:newVI/F"}),ProcessEvent);
 
 
