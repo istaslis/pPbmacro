@@ -1,3 +1,9 @@
+
+s1='gSystem->CompileMacro("'
+s2='","kfc"); gSystem->Exit(0);'
+
+echo $s1$1$s2 | root -b -l
+
 NPAR=10
 echo Running $NPAR processes
 for i in $(seq 1 $NPAR)
@@ -7,4 +13,11 @@ done
 
 wait
 echo can merge!
-hadd output.root *_job*
+
+suffix="_job1"
+d=`ls *$suffix`
+OUTNAME=${d%$suffix}
+
+
+hadd -f $OUTNAME *_job*
+rm *_job*

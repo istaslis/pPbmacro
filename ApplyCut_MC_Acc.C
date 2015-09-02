@@ -9,59 +9,33 @@
 #include <functional>
 #include "HelperProcess.C"
 
+const bool MC = false; //false = data
+
 void ProcessEvent(Everything &ev, Everything &evout)
 {
-  int rout = 0;
-  for (int r=0;r<ev.GetInt("nref");r++)
-    if (fabs(ev["jteta"][r])<2 && ev["rawpt"][r]>18.) {
-      evout["jtpt"].push_back(ev["jtpt"][r]);
-      evout["jteta"].push_back(ev["jteta"][r]);
-      evout["jtphi"].push_back(ev["jtphi"][r]);
-      evout["rawpt"].push_back(ev["rawpt"][r]);
-      evout["refpt"].push_back(ev["refpt"][r]);
-      evout.GetVInt("refparton_flavorForB").push_back(ev.GetVInt("refparton_flavorForB")[r]);
-      evout["discr_prob"].push_back(ev["discr_prob"][r]);
-      evout["discr_csvSimple"].push_back(ev["discr_csvSimple"][r]);
-      evout["svtxm"].push_back(ev["svtxm"][r]);
-
-      evout["jty"].push_back(ev["jty"][r]);
-      evout["refeta"].push_back(ev["refeta"][r]);
-      evout["refy"].push_back(ev["refy"][r]);
-      evout["refphi"].push_back(ev["refphi"][r]);
-      evout["refparton_pt"].push_back(ev["refparton_pt"][r]);
-
-
-      evout["mue"].push_back(ev["mue"][r]);
-      evout["mupt"].push_back(ev["mupt"][r]);
-      evout["mueta"].push_back(ev["mueta"][r]);
-      evout["muphi"].push_back(ev["muphi"][r]);
-      evout["mudr"].push_back(ev["mudr"][r]);
-      evout["muptrel"].push_back(ev["muptrel"][r]);
-      evout.GetVInt("muchg").push_back(ev.GetVInt("muchg")[r]);
-      rout++;
-
+  for (int r=0;r<ev.GetInt("nref");r++) {
+    if (fabs(ev["jteta"][r])<2 && ev["rawpt"][r]>22.) {
+      evout.AddRow(ev,"nref",r);
     }
-
-    evout.PutInt("nref", evout["jtpt"].size());
-
+  }
 }
 
-void ApplyCut_MC_Acc(){
+void ApplyCut_MC_Acc(int id=0, int N=1){
 
   gROOT->Reset();
 
-  TString sample = "QCDPPb";//bJetPPb
-  TString name = Form("%s_HiForest.root",sample.Data());
-  TString outname = Form("%s_AccCut.root",sample.Data());
-  
-  
-  vector<TString> jetbranches = {
-    "jtpt", "jteta", "jtphi", "rawpt", "jty", "refeta","refy","refphi","refparton_pt",
-    "refpt", "refparton_flavorForB", "discr_prob", "discr_csvSimple","svtxm",
-    "mue", "mupt", "mueta", "muphi", "mudr", "muptrel", "muchg"
-  };
+  TString sample, name, outname;
 
-  ProcessFile(name, outname, "jet", vector<TString>({"muon","evt"}), jetbranches, vector<TString>({}), ProcessEvent);
+  if (MC) {
+    sample = "QCDPPb";//bJetPPb
+    name = Form("%s_HiForest.root",sample.Data());
+    outname = Form("%s_AccCut.root",sample.Data());
+  } else {
+    name = "jettrig_weight.root";
+    outname = "jettrig_weight_AccCut.root";
+  }
+  
+    ProcessFile(name, outname, "jet", vector<TString>({"muon"}), vector<TString>{"nref"}, vector<TString>(), ProcessEvent, id, N);
 
 
   

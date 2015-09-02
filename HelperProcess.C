@@ -34,8 +34,17 @@ public:
       if (brVIntCounter[i]==counter) GetVInt(brVInt[i]).push_back(ev.GetVInt(brVInt[i])[N]);
     for (unsigned i=0;i<brVFloatCounter.size();i++)
       if (brVFloatCounter[i]==counter) GetVFloat(brVFloat[i]).push_back(ev[brVFloat[i]][N]);
+  }
+
+  void CopySingles(Everything &ev)
+  {
+    for (unsigned i=0;i<brInt.size();i++)
+      PutInt(brInt[i],ev.GetInt(brInt[i]));
+    for (unsigned i=0;i<brFloat.size();i++)
+      PutFloat(brFloat[i],ev.GetFloat(brFloat[i]));
 
   }
+
 
   bool UpdateCounters()
   {
@@ -253,6 +262,7 @@ void ParseNewBranches(vector<TString> branches, vector<TString> &brInt, vector<T
     {
       TString brname, brtype;
       auto btab = tokenize(b,":");
+
       if (btab.size()==2) {//it's a table!
 	TString countername, countertype;
 	GetBranchNameType(btab[0],countername,countertype); //type should be int
@@ -339,7 +349,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   }
 
   AddBranchesByCounter(tjet, branches);
-  for (int i=0;i<friendTrees.size();i++) AddBranchesByCounter(friendTrees[i],branches);
+  for (unsigned i=0;i<friendTrees.size();i++) AddBranchesByCounter(friendTrees[i],branches);
 
 
   //sort branches into categories
@@ -537,7 +547,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   s.Stop();
   cout<<"Done in ";s.Print();
   
-
+  tjetout->FlushBaskets();
   tjetout->Write();
   
   cout<<"Copying other trees..."<<endl;
