@@ -555,7 +555,8 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   for (unsigned i=0;i<friendTrees.size();i++) {
     TTree *t = friendTrees[i];
     if (sameFileFriend[i]) {
-      TTree *triendout = t->CloneTree(-1,"fast"); //IMPORTANT!
+      //TTree *triendout = t->CloneTree(-1,"fast"); //IMPORTANT!
+      TTree *triendout = t->CopyTree("","",nentries,nentries1); //IMPORTANT!
       triendout->Write();
     }
   }

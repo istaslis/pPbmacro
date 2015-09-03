@@ -4,6 +4,8 @@
 #include <vector>
 #include "HelperProcess.C"
 
+const int NEntries = 10000;
+
 void makeFile(char *fname)
 {
   TFile *fout = new TFile(fname,"recreate");
@@ -23,7 +25,7 @@ void makeFile(char *fname)
   t->Branch("vf",vf.data(),"vf[n]/F");
   t->Branch("vk",vk.data(),"vk[k]/F");
 
-  for (i=0;i<10000;i++){
+  for (i=0;i<NEntries;i++){
     f=gRandom->Gaus();
     n=gRandom->Integer(1000);
    
@@ -38,6 +40,18 @@ void makeFile(char *fname)
 
     }
   t->Write();
+
+  TTree *t2 = new TTree("t2","t2");
+ 
+  t2->Branch("n",&n,"n/I");
+  
+  for (i=0;i<NEntries;i++){
+    n=gRandom->Integer(1000);
+    t2->Fill();
+  }
+  
+  t2->Write();
+
 
   fout->Close();
 
@@ -61,14 +75,14 @@ void ProcessEvent(Everything &ev, Everything &evout)
 }
 
 
-void testHelper()
+void testHelper(int id=0, int N=1)
 {
-  cout<<"Making file..."<<endl;
-  makeFile("testHelper1.root");
+  //cout<<"Making file..."<<endl;
+  //makeFile("testHelper1.root");
 
   cout<<"Processing..."<<endl;
-  ProcessFile("testHelper1.root","testHelper2.root","t",vector<TString>(),vector<TString>({"n"}),
-	      vector<TString>({"newN/I:newVI/F"}),ProcessEvent);
+  ProcessFile("testHelper1.root","testHelper2.root","t",{"t2"},
+              {"n"},{"newN/I:newVI/F"},ProcessEvent,id,N);
 
 
 
