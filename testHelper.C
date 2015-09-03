@@ -4,9 +4,9 @@
 #include <vector>
 #include "HelperProcess.C"
 
-const int NEntries = 10000;
+const int NEntries = 10;
 
-void makeFile(char *fname)
+void makeFile(const char *fname)
 {
   TFile *fout = new TFile(fname,"recreate");
   TTree *t = new TTree("t","t");
@@ -74,15 +74,32 @@ void ProcessEvent(Everything &ev, Everything &evout)
   }
 }
 
+bool FlattifyEvent(Everything &ev, Everything &evout, int counter)
+{
+  auto n=ev.GetInt("n");
+  auto vf=ev["vf"];
+
+  if (n>0)
+    cout<<counter<<" "<<n<<" "<<vf[counter]<<endl;
+
+  if (counter<n)
+    evout.PutFloat("vflat",vf[counter]);
+  else return true;
+
+  return false;
+}
+
 
 void testHelper(int id=0, int N=1)
 {
-  //cout<<"Making file..."<<endl;
-  //makeFile("testHelper1.root");
+  cout<<"Making file..."<<endl;
+  makeFile("testHelper1.root");
 
   cout<<"Processing..."<<endl;
+  //  ProcessFile("testHelper1.root","testHelper2.root","t",{"t2"},
+  //              {"n"},{"newN/I:newVI/F"},ProcessEvent,id,N);
   ProcessFile("testHelper1.root","testHelper2.root","t",{"t2"},
-              {"n"},{"newN/I:newVI/F"},ProcessEvent,id,N);
+              {"n"},{"vflat/F"},FlattifyEvent,id,N);
 
 
 

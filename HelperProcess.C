@@ -17,6 +17,7 @@ const int NMAX = 10000;
 const bool UNSAFEMAP = true;
 const bool VERBOSE = false;
 
+
 //so far - global veriables
 vector<TString> brInt, brFloat, brVInt, brVIntCounter, brVFloat, brVFloatCounter;
 
@@ -145,7 +146,7 @@ public:
     //mapInt.emplace(name,value);
   }
 
-  void PutFloat(TString name, int value)
+  void PutFloat(TString name, float value)
   {
     mapFloat[name] = value;
     //mapFloat.emplace(name,value);
@@ -208,6 +209,19 @@ public:
   }
 
 };
+
+
+
+typedef void (*ProcessOneToOne)(Everything &ev, Everything &evout);
+typedef bool (*ProcessOneToMany)(Everything &ev, Everything &evout, int counter);
+
+bool useOneToOne = true; //better solution will be implemented later...
+ProcessOneToOne fProcessOneToOne;
+ProcessOneToMany fProcessOneToMany;
+
+
+
+
 
 void testEverything()
 {
@@ -330,7 +344,7 @@ void AddBranchesByCounter(TTree *t, vector<TString> &branches)
 }
 
 //std::mutex mtx;
-void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, std::function<void(Everything&,Everything&)> processFunc, unsigned jobid = 0, unsigned NPAR = 1)
+void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, unsigned jobid = 0, unsigned NPAR = 1)
 {
   //mtx.lock(); //for threads
   TFile *fin = new TFile(fileIn);
@@ -405,7 +419,15 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
 
 
   TFile *fout = new TFile(fileOut,"recreate");
-  TTree *tjetout = tjet->CloneTree(0);
+  TTree *tjetout;
+
+
+  //in case of one-to-many event - do not copy branches automatically!
+  if (useOneToOne) tjetout = tjet->CloneTree(0);
+  else tjetout = new TTree(tjet->GetName(),tjet->GetTitle());
+
+
+
   //think about memory tree
   // tjetout->SetDirectory(0);
   tjetout->SetName(tjet->GetName());
@@ -414,7 +436,6 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   //to see what is copied...
   //tjetout->Print();
 
-  //here are errors from non existing branches
   for (auto b:brVFloat) if (tjet->GetBranch(b)!=0) tjet->SetBranchStatus(b,1);
   for (auto b:brFloat)  if (tjet->GetBranch(b)!=0) tjet->SetBranchStatus(b,1);
   for (auto b:brVInt)   if (tjet->GetBranch(b)!=0) tjet->SetBranchStatus(b,1);
@@ -472,7 +493,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   int nentries2 = nentries/NPAR*(jobid+1);
   
   nentries = nentries2-nentries1; 
-  int oneperc = nentries/100;
+  int oneperc = nentries/100; if (oneperc==0) oneperc = 1;
 
   cout<<"Start processing..."<<endl;
   TStopwatch s;
@@ -519,13 +540,24 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
     TTimeStamp tsCl1;
     cloneTime+=tsCl1-tsCl0;
 
-    //cout<<"will process..."<<endl;
+    bool exitEvent = false;
+    int counter = 0;
+
+    while (!exitEvent) {
+    
     TTimeStamp tsPr0;
-    processFunc(ev, evout);
-    evout.UpdateCounters();
+    if (useOneToOne) {
+      fProcessOneToOne(ev, evout);
+      evout.UpdateCounters();
+      exitEvent = true;
+    } else {
+      exitEvent = fProcessOneToMany(ev, evout, counter);
+      counter++;
+    }
+
     TTimeStamp tsPr1;  
     processingTime+=tsPr1-tsPr0;
-    //cout<<"processed!"<<endl;
+    
     
     //Everything evout = ev;
     
@@ -541,6 +573,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
     tjetout->Fill();
     TTimeStamp tsFill1;
     fillTime+=tsFill1-tsFill0;
+  }
 
   }
   cout<<endl;
@@ -555,8 +588,8 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   for (unsigned i=0;i<friendTrees.size();i++) {
     TTree *t = friendTrees[i];
     if (sameFileFriend[i]) {
-      //TTree *triendout = t->CloneTree(-1,"fast"); //IMPORTANT!
-      TTree *triendout = t->CopyTree("","",nentries,nentries1); //IMPORTANT!
+      //TTree *triendout = t->CloneTree(-1,"fast");
+      TTree *triendout = t->CopyTree("","",nentries,nentries1);
       triendout->Write();
     }
   }
@@ -591,12 +624,24 @@ TString GetFileName(unsigned jobid, TString fileOut)
   return Form("%s_job%d",fileOut.Data(),jobid);
 }
 
-
-void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, std::function<void(Everything&,Everything&)> processFunc,unsigned jobid = 0, unsigned int NPAR = 1)
+void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, ProcessOneToMany processFunc,unsigned jobid = 0, unsigned int NPAR = 1)
 {
+  useOneToOne = false;
+  fProcessOneToMany = processFunc;
+
 
   TString fileName = NPAR>1 ? GetFileName(jobid, fileOut) : fileOut;
-  ProcessFilePar(fileIn, fileName, treename, friends, branches, newbranches, processFunc, jobid, NPAR);
+  ProcessFilePar(fileIn, fileName, treename, friends, branches, newbranches, jobid, NPAR);
+
+}
+
+void ProcessFile(TString fileIn, TString fileOut, TString treename,  vector<TString> friends, vector<TString> branches, vector<TString> newbranches, ProcessOneToOne processFunc,unsigned jobid = 0, unsigned int NPAR = 1)
+{
+  useOneToOne = true;
+  fProcessOneToOne = processFunc;
+
+  TString fileName = NPAR>1 ? GetFileName(jobid, fileOut) : fileOut;
+  ProcessFilePar(fileIn, fileName, treename, friends, branches, newbranches, jobid, NPAR);
   
 }
 
