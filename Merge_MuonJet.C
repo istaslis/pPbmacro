@@ -9,7 +9,7 @@
 #include <functional>
 #include "HelperProcess.C"
 
-const bool MC = false;
+bool MC = true;
 
 double dR(float phi1, float eta1, float phi2, float eta2)
 {
@@ -101,9 +101,14 @@ void ProcessEvent(Everything &ev, Everything &evout)
   }
 }
 
-void Merge_MuonJet(int id = 0, int N = 1){
+void Merge_MuonJet(TString type, int id = 0, int N = 1){
 
   gROOT->Reset();
+  
+  type.ToLower();
+  if (type=="mc") MC = true; else
+    if (type=="data") MC = false; else
+      {cout<<"Choose mc or data"<<endl; return; }
 
   TString sample = "QCDPPb";//bJetPPb
   TString name,outname;

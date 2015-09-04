@@ -104,7 +104,8 @@ public:
     if (mapFloat.find(name) != mapFloat.end())
       return mapFloat[name];
     else
-      cout<<"No float with name "<<name<<" ! "<<endl;
+      cout<<"No float with name "<<name<<" ! Creating one..."<<endl;
+      mapFloat[name] = 0;
     return -1;
   }
 
@@ -114,7 +115,7 @@ public:
     if (mapVFloat.find(name) != mapVFloat.end())
       return mapVFloat[name];
     else  {
-      cout<<"No float vector with name "<<name<<" ! Creating one..."<<endl;
+      //cout<<"No float vector with name "<<name<<" ! Creating one..."<<endl;
       vector<float> t;
       mapVFloat[name]=t;      
       return mapVFloat[name];
@@ -127,7 +128,7 @@ public:
     if (mapVInt.find(name) != mapVInt.end())
       return mapVInt[name];
     else  {
-      cout<<"No int vector with name "<<name<<" ! Creating one..."<<endl;
+      //cout<<"No int vector with name "<<name<<" ! Creating one..."<<endl;
       vector<int> t;
       mapVInt[name]=t;      
       return mapVInt[name];
@@ -317,14 +318,15 @@ bool NonFriendBranch(TTree *t, TString branchName)
 map<TString, vector<TString> >GetCounterBranchListMap(TTree *t)
 {
   map<TString, vector<TString> > m;
-  TObjArray *l = t->GetListOfLeaves();
-  int n = l->GetEntries();
+  TObjArray *l = t->GetListOfLeaves(); //sometimes leave can be named wrong - rely on branches
+  int n = l->GetEntries();// cout<<t->GetName()<<" has "<<n<<" leaves"<<endl;
   for (int i=0;i<n;i++) {
     TLeaf * leaf = (TLeaf *)(*l)[i];
     TLeaf *lc = leaf->GetLeafCount();
+    
     if (lc!=0) {
-      m[lc->GetName()].push_back(leaf->GetName()); //leaf name == branch name!
-      if (VERBOSE) cout<<lc->GetName()<<" _ "<<leaf->GetName()<<endl;
+      m[lc->GetBranch()->GetName()].push_back(leaf->GetBranch()->GetName()); //get leaf's branch name
+      if (VERBOSE) cout<<lc->GetBranch()->GetName()<<" _ "<<leaf->GetBranch()->GetName()<<endl;
     }
   }
 
@@ -365,7 +367,6 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   AddBranchesByCounter(tjet, branches);
   for (unsigned i=0;i<friendTrees.size();i++) AddBranchesByCounter(friendTrees[i],branches);
 
-
   //sort branches into categories
   for (auto bName:branches) {
     TBranch *b=tjet->GetBranch(bName);
@@ -375,7 +376,15 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
     auto branchtoken = tokenize(bName,".");
     auto leafname = branchtoken[branchtoken.size()-1];
 
-    TLeaf *l = b->GetLeaf(leafname); //assuming one leaf in the branch!
+    TObjArray *bl = b->GetListOfLeaves();
+    if (bl->GetEntries()>1)
+      cout <<" Branch "<<b->GetTitle()<<" has more than 1 leave. Taking first..."<<endl;
+    if (bl->GetEntries()==0) {
+      cout <<" Branch "<<b->GetTitle()<<" has no leaves! Skipping..."<<endl;
+      continue;
+    }
+
+    TLeaf * l = (TLeaf *)(*bl)[0];
     //what's the type?
     TString type = l->GetTypeName();
     if (VERBOSE) cout<<l->GetTitle()<<endl;
@@ -383,7 +392,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
     //array?
     bool array = l->GetLeafCount()!=0;
     TString counter;
-    if (array) counter = l->GetLeafCount()->GetTitle();
+    if (array) counter = l->GetLeafCount()->GetBranch()->GetName();
 
     if (type=="Float_t")
       {  if (array) {brVFloat.push_back(bName); brVFloatCounter.push_back(counter); }else brFloat.push_back(bName);}
@@ -391,6 +400,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
       {  if (array) {brVInt.push_back(bName); brVIntCounter.push_back(counter); }else brInt.push_back(bName);}
     else cout << "Unsupported branch type "<<type<<" for branch "<<bName<<". Skipping..."<<endl;
   }
+
 
   //treat counters as ints only
   AppendToListUniquely(brVIntCounter, brInt);
@@ -415,7 +425,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   for (auto b:brVFloat) if (tjet->GetBranch(b)!=0) tjet->SetBranchStatus(b,0);
   for (auto b:brFloat)  if (tjet->GetBranch(b)!=0) tjet->SetBranchStatus(b,0);
   for (auto b:brVInt)   if (tjet->GetBranch(b)!=0) tjet->SetBranchStatus(b,0);
-  for (auto b:brInt)    if (tjet->GetBranch(b)!=0) {unsigned f=0; tjet->SetBranchStatus(b,0,&f); cout<<"turning off ";cout<<b<<", found = "<<f<<endl;}
+  for (auto b:brInt)    if (tjet->GetBranch(b)!=0) {unsigned f=0; tjet->SetBranchStatus(b,0,&f); if (VERBOSE) cout<<"turning off "<<b<<", found = "<<f<<endl;}
 
 
   TFile *fout = new TFile(fileOut,"recreate");
@@ -425,7 +435,6 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   //in case of one-to-many event - do not copy branches automatically!
   if (useOneToOne) tjetout = tjet->CloneTree(0);
   else tjetout = new TTree(tjet->GetName(),tjet->GetTitle());
-
 
 
   //think about memory tree
@@ -462,6 +471,7 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   for (unsigned i=0;i<brFloat.size();i++) {
     if (tjet->GetBranch(brFloat[i])!=0) 
       tjet->SetBranchAddress(brFloat[i],&valFloatIn[i]);
+    
     if (NonFriendBranch(tjet, brFloat[i]))
       tjetout->Branch(brFloat[i],&valFloatOut[i],Form("%s/F",brFloat[i].Data()));
   }
@@ -503,16 +513,16 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
   
 
   for (Long64_t i=0; i<nentries;i++) {
-    if (i % oneperc == 0 && i>0) {
+    if (jobid==0 && i % oneperc == 0 && i>0) {
       std::cout << std::fixed;
-      TTimeStamp t1; cout<<"W"<<jobid<<" \r"<<i/oneperc<<"%   "<<" est. time "<<setprecision(2) <<(t1-t0)*nentries/(i+.1)<<" s ";
+      TTimeStamp t1; cout<<" \r"<<i/oneperc<<"%   "<<" est. time "<<setprecision(2) <<(t1-t0)*nentries/(i+.1)<<" s ";
       cout<<";Processing:"<<setprecision(2)<<processingTime/(t1-t0)*100<<" %";
       cout<<";Copy1:"<<setprecision(2) <<copyToTime/(t1-t0)*100<<" %";
       cout<<";Clone:"<<setprecision(2) <<cloneTime/(t1-t0)*100<<" %";
       cout<<";Copy2:"<<setprecision(2) <<copyFromTime/(t1-t0)*100<<" %";
       cout<<";Fill:"<<setprecision(2) <<fillTime/(t1-t0)*100<<" %";
       cout<<";Read:"<<setprecision(2) <<readTime/(t1-t0)*100<<" %";
-      if (NPAR==1) cout<<flush; else cout<<endl;
+      cout<<flush; 
     }
     
     TTimeStamp tsRead0;
@@ -551,7 +561,8 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
       evout.UpdateCounters();
       exitEvent = true;
     } else {
-      exitEvent = fProcessOneToMany(ev, evout, counter);
+      exitEvent = fProcessOneToMany(ev, evout, counter); 
+      //      if (!exitEvent) cout<<"event to write "<<counter<<endl;
       counter++;
     }
 
@@ -560,10 +571,11 @@ void ProcessFilePar(TString fileIn, TString fileOut, TString treename,  vector<T
     
     
     //Everything evout = ev;
-    
     TTimeStamp tsCpFrom0;
     for (unsigned j=0;j<brInt.size();j++) valIntOut[j] = evout.GetInt(brInt[j]);
-    for (unsigned j=0;j<brFloat.size();j++) valFloatOut[j] = evout.GetFloat(brFloat[j]);
+    for (unsigned j=0;j<brFloat.size();j++) {valFloatOut[j] = evout.GetFloat(brFloat[j]); 
+      //  cout<<brFloat[j]<<" "<<evout.GetFloat(brFloat[j])<<endl;
+    }
     for (unsigned j=0;j<brVFloat.size();j++) valVFloatOut[j] = evout[brVFloat[j]];
     for (unsigned j=0;j<brVInt.size();j++) valVIntOut[j] = evout.GetVInt(brVInt[j]);
     TTimeStamp tsCpFrom1;

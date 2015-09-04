@@ -9,7 +9,7 @@
 #include <functional>
 #include "HelperProcess.C"
 
-const bool MC = false; //false = data
+bool MC = true; //false = data
 
 void ProcessEvent(Everything &ev, Everything &evout)
 {
@@ -20,9 +20,15 @@ void ProcessEvent(Everything &ev, Everything &evout)
   }
 }
 
-void ApplyCut_MC_Acc(int id=0, int N=1){
+void ApplyCut_MC_Acc(TString type, int id=0, int N=1){
 
   gROOT->Reset();
+
+  type.ToLower();
+  if (type=="mc") MC = true; else
+    if (type=="data") MC = false; else
+      {cout<<"Choose mc or data"<<endl; return; }
+
 
   TString sample, name, outname;
 

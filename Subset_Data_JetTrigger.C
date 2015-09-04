@@ -3,6 +3,7 @@
 #include "TNtuple.h"
 #include <iostream>
 #include <unordered_map>
+#include "TStopwatch.h"
 using namespace std;
 
 struct REL {
@@ -24,7 +25,8 @@ struct RELhash
 {
   int operator()(const REL &r) const
   {
-    return hash<string>()(Form("%d%d%d",r.run,r.event,r.lumiBlock));//r.run ^ r.event ^ r.lumiBlock;
+    return hash<string>()(Form("%d%d%d",r.run,r.event,r.lumiBlock));
+    //return r.run ^ r.event ^ r.lumiBlock;
   }
 };
 
@@ -259,24 +261,28 @@ void Subset_Data_JetTrigger()
 
 
   int oneperc = nEntries/100;
+  TStopwatch s;
 
   for (int i=0;i<nEntries;i++)
     {
-      if (i % oneperc == 0) cout <<i/oneperc<<"%"<<endl;
+      if (i % oneperc == 0) {
+	s.Print();
+	s.Reset(); s.Start();
+	cout <<i/oneperc<<"%"<<endl;
+      }
+
       ch->LoadTree(i); ch2->LoadTree(i); ch3->LoadTree(i); ch4->LoadTree(i); ch5->LoadTree(i); ch6->LoadTree(i);
       ch->GetEntry(i); ch2->GetEntry(i); ch3->GetEntry(i); ch4->GetEntry(i); ch5->GetEntry(i); ch6->GetEntry(i);
 
       if (pHBHENoiseFilter==0) continue;
 
       REL r(Run,Event,LumiBlock);
-      if (rel.find(r) != rel.end()) {
-    	 rel[r]++;
-    	 //if (rel[r]>2) cout<<r.run<<","<<r.event<<","<<r.lumiBlock<<": "<<rel[r]<<endl;
-    	 continue;
-      }
-      else rel[r] = 1;
 
-      nt->Fill();//pt,eta,phi,mass,jt40,jt60,jt80,jt100,pscl40,pscl60,pscl80,pscl100);
+      rel[r]++;
+      if (rel[r]>1) continue;
+      //      if (rel[r]!=0) continue; else rel[r] = 1;
+
+      nt->Fill();
       muon->Fill();
     }
 

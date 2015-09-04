@@ -21,8 +21,10 @@ vector<TString> branchesJet = {
   "nref",
   "rawpt",
   "jtpt", "jteta", "jty", "jtphi",
-  "discr_csvSimple","discr_prob","svtxm",
+  "discr_csvSimple","discr_prob","svtxm", "discr_ssvHighPur","discr_ssvHighEff",
   
+  "nIP","ipProb0","ipJetIndex",
+
   "mue", "mupt", "mueta", "muphi", "mudr", "muptrel", "muchg",
   
   "pthat",
