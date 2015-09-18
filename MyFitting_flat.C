@@ -1,5 +1,9 @@
 #define ROOFITTER
 
+#include "TH1F.h"
+#include "TFile.h"
+#include "TString.h"
+
 double GetIntegral(TH1 *h, bool full = false)
 {
   TH1F *h1 = dynamic_cast<TH1F*>(h);
@@ -36,15 +40,16 @@ void DoFit(double pTmin, double pTmax)
   TString muset = "jetmuon";//"mu"
   float discrmax = 6;
 
+  bool CLtogether = false;
 
   //  const char *discrname = "discr_ssvHighPur";
   //  float discrvalue = -100;//1.68;
 
-  //const char *discrname = "discr_ssvHighEff";
-  //float discrvalue = 2;
+  const char *discrname = "discr_ssvHighEff";
+  float discrvalue = 2;
 
-  const char *discrname = "jetmuonpt";
-  float discrvalue = 7;
+  //const char *discrname = "jetmuonpt";
+  //float discrvalue = 7;
     
   //  const char *discrname = "discr_csvSimple";
   //  float discrvalue = -10;
@@ -56,10 +61,10 @@ void DoFit(double pTmin, double pTmax)
   int bins = 12;//16;
   bool logplots = false;
 
-  TString variable = "ptrel";
-    //"ip3d";
+  TString variable = //"ptrel";
+    //    "ip3d";
     //"jp";
-    //"svtxm";
+    "svtxm";
 
   TString sVar, sTitle, sPhysicsCut;
 
@@ -255,6 +260,8 @@ void DoFit(double pTmin, double pTmax)
   TH1F *mc1 = hmc_b;
   TH1F *mc2 = hmc_c;
   TH1F *mc3 = hmc_l;
+  TH2F *mc23 = (TH2F *)mc2->Clone("mc23");
+  mc23->Add(mc3);
 
 
   //TNtuple *data = (TNtuple*)data_old;//new TNtuple("datanew","datanew","x:weight");
@@ -265,13 +272,16 @@ void DoFit(double pTmin, double pTmax)
   mc1->Scale(1/mc1->Integral());
   mc2->Scale(1/mc2->Integral());
   mc3->Scale(1/mc3->Integral());
+  mc23->Scale(1/mc23->Integral());
+
+
+  double x1, x1e, x2, x2e, x3, x3e;
 
   
   #ifdef ROOFITTER
   
   cout<<"Roofit is used"<<endl;
 
-  double x1, x1e, x2, x2e, x3, x3e;
 
   RooRealVar x(var,var,xmin,xmax) ;
   RooRealVar jtpt("jtpt","jtpt", pTmin, pTmax);
@@ -280,28 +290,32 @@ void DoFit(double pTmin, double pTmax)
   RooRealVar weight("weight","weight",0,1) ;
   RooRealVar weightJet("weightJet","weightJet",0,200) ;
 
-
-
   RooRealVar nb("nb","fraction of b",0.65,0,1);
-  RooRealVar nc("nc","fraction of c",0.27,0,1);
-  RooRealVar nl("nl","fraction of l",0.08,0,1);
+
 
   RooDataHist roomc1("roomc1","roomc1",RooArgList(x),mc1);
-  RooDataHist roomc2("roomc2","roomc2",RooArgList(x),mc2);
-  RooDataHist roomc3("roomc3","roomc3",RooArgList(x),mc3);
-
   RooHistPdf pdfroomc1("pdfroomc1","pdfroomc1",x,roomc1);
-  RooHistPdf pdfroomc2("pdfroomc2","pdfroomc2",x,roomc2);
-  RooHistPdf pdfroomc3("pdfroomc3","pdfroomc3",x,roomc3);
-
-  RooArgList pdfs(pdfroomc1,pdfroomc2,pdfroomc3);
-  RooArgList ints(nb,nc);
   
-  RooAddPdf* qcdEstimateModel = new RooAddPdf("QCDEstimationPdf","QCDEstimationPdf", pdfs, ints);
+
+  RooAddPdf* qcdEstimateModel;
+  
+  if (CLtogether) {
+  RooDataHist roomc23("roomc23","roomc23",RooArgList(x),mc23);
+  RooHistPdf pdfroomc23("pdfroomc23","pdfroomc23",x,roomc23);
+
+  RooArgList pdfs2(pdfroomc1,pdfroomc23);
+  RooArgList ints2(nb);
+
+  qcdEstimateModel = new RooAddPdf("QCDEstimationPdf","QCDEstimationPdf", pdfs2, ints2);
+
+//  RooRealVar ncl("nc","fraction of c and l",0.35,0,1);
+
 
   // Get Data To Fit To
   //RooDataHist* roodata = new RooDataHist("roodata","roodata",RooArgList(x),data);
   RooDataSet dataset("dataset","dataset",td,RooArgSet(x,weightJet,roodiscr,jtpt),Form("%s && %s",physicscut,discrData),"weightJet");
+
+  
 
   // Fit Model To Data
   RooFitResult* result = qcdEstimateModel->fitTo(dataset,
@@ -311,15 +325,63 @@ void DoFit(double pTmin, double pTmax)
              RooFit::SumW2Error(kTRUE),
              RooFit::PrintLevel(-1));
 
+  result->Print();
+
+
   x1 = nb.getVal();
+  x1e = nb.getError();
+
+  x2 = (1-x1)/2;
+  x3 = (1-x1)/2;
+
+  x2e = x1e;
+  x3e = x1e;
+
+
+  } else {
+  RooDataHist roomc2("roomc2","roomc2",RooArgList(x),mc2);
+  RooDataHist roomc3("roomc3","roomc3",RooArgList(x),mc3);
+  RooHistPdf pdfroomc2("pdfroomc2","pdfroomc2",x,roomc2);
+  RooHistPdf pdfroomc3("pdfroomc3","pdfroomc3",x,roomc3);
+
+  RooRealVar nc("nc","fraction of c",0.27,0,1);
+  RooRealVar nl("nl","fraction of l",0.08,0,1);
+
+  RooArgList pdfs(pdfroomc1,pdfroomc2,pdfroomc3);
+  RooArgList ints(nb,nc);
+
+  qcdEstimateModel = new RooAddPdf("QCDEstimationPdf","QCDEstimationPdf", pdfs, ints);
+  
+
+  // Get Data To Fit To
+  //RooDataHist* roodata = new RooDataHist("roodata","roodata",RooArgList(x),data);
+  RooDataSet dataset("dataset","dataset",td,RooArgSet(x,weightJet,roodiscr,jtpt),Form("%s && %s",physicscut,discrData),"weightJet");
+
+  
+
+  // Fit Model To Data
+  RooFitResult* result = qcdEstimateModel->fitTo(dataset,
+             RooFit::NumCPU(1,1),
+             RooFit::Save(kTRUE),
+             //            RooFit::Extended(kTRUE),
+             RooFit::SumW2Error(kTRUE),
+             RooFit::PrintLevel(-1));
+
+  result->Print();
+
+
+cout<<1<<endl;
+
+  x1 = nb.getVal();
+  x1e = nb.getError();
+
   x2 = nc.getVal();
   x3 = 1-x1-x2;
 
-  x1e = nb.getError();
   x2e = nc.getError();
   x3e = x1e + x2e;
-
-  result->Print();
+  }
+  
   
   
   #else
@@ -336,7 +398,6 @@ void DoFit(double pTmin, double pTmax)
   mc->Add(hmc_l);
 
   TH1F *prediction;
-  double x1, x1e, x2, x2e, x3, x3e;
 
 
    TFractionFitter* fit = new TFractionFitter(hd_tag, mc, "Q"); //Q = quiet, no message
@@ -513,8 +574,8 @@ void DoFit(double pTmin, double pTmax)
 
 void MyFitting_flat()
 {
-  vector<double> pTbins = {60,80,120,170,250,400};
-  //  vector<double> pTbins = {70,90,110,140,170,220,400};
+  //vector<double> pTbins = {60,80,120,170,250,400};
+  vector<double> pTbins = {55,70,90,110,140,170,220,400};
   int Nptbins = pTbins.size();
   vector<double> pt, pterrors;
 
@@ -531,9 +592,9 @@ void MyFitting_flat()
   //DatataggingC->SetFillStyle(1001);
   //MCtaggingC->SetMinimum(0);  MCtaggingC->SetMaximum(0.2);
 
-  //  for (int i=0;i<Nptbins-1;i++) 
+  for (int i=0;i<Nptbins-1;i++) 
   {
-        int i=1;
+    //      int i=0;
     DoFit(pTbins[i],pTbins[i+1]);
     pt.push_back((pTbins[i+1]+pTbins[i])/2);
     pterrors.push_back((pTbins[i+1]-pTbins[i])/2);
